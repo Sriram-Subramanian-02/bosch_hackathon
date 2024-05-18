@@ -4,7 +4,7 @@ This repository contains code for a question-and-answer (Q&A) application powere
 ## Project Description
 This application utilizes an LLM to process user queries and provide informative answers. It leverages RAG techniques to:
 
-Retrieve relevant textual content (including tables) from a Vector Database (not included).
+Retrieve relevant textual content (including tables) from a Vector Database.
 Generate responses that are both accurate and relevant to the user's intent.
 Employ probing questions to gain further context and refine understanding of the user's prompt.
 The application strives to deliver responses within a minute of receiving a user query.
@@ -21,7 +21,7 @@ This project relies on specific libraries and frameworks for LLM access, Vector 
 Installation
 Clone this repository:
 Bash
-git clone https://<your_repository_url>
+git clone [https://<your_repository_url>](https://github.com/Sriram-Subramanian-02/bosch_hackathon)
 Use code with caution.
 content_copy
 Install required dependencies:
