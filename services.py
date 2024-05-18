@@ -170,7 +170,7 @@ def calculate_similarity(a, b):
   return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def get_response(query, threshold=0.5):
+def get_response(query, threshold=0.4):
     cohere_client = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
     chat_history = get_latest_data(USER_ID, SESSION_ID)
 
@@ -202,7 +202,7 @@ def get_response(query, threshold=0.5):
     print(counter)
     prompt = None
 
-    if counter >= 3:
+    if counter > 3:
         prompt = f"""
                 Create several question based on question:{query}, context: {context} and chat history of the user: {chat_history}.
                 As similarity between query and context is low, try to ask several probing questions.
