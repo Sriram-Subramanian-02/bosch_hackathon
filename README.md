@@ -20,9 +20,9 @@ Includes a basic user interface for a chat-style Q&A experience.
 ## Dependencies
 This project relies on specific libraries and frameworks for LLM access, Vector Database interaction, and UI development. Refer to the requirements.txt file for a detailed list.
 
-## Installation
-```
+## Installation: 
 Clone this repository:
+```
 git clone https://github.com/Sriram-Subramanian-02/bosch_hackathon
 ```
 ## Install required dependencies:
