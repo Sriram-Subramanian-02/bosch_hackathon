@@ -39,14 +39,6 @@ Note: This readme assumes a Python-based project with a requirements.txt file sp
 Follow instructions in the config.py file to configure the application (e.g., Vector Database connection details).
 Run the main script (e.g., main.py) to start the application.
 Interact with the application through the provided chat interface.
-Contributing
-We welcome contributions to this project. Please refer to the CONTRIBUTING.md file for guidelines on submitting pull requests and code formatting conventions.
 
 ## License
 This project is licensed under the [License Name] license. See the LICENSE file for details.
-
-Note: Replace placeholders like <your_repository_url> and [License Name] with the specific details relevant to your project. You may also want to include additional sections such as:
-
-Authors and maintainers
-Known issues and limitations
-References and resources
