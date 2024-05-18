@@ -194,7 +194,7 @@ def get_response(query, threshold=0.3):
                 input_type=input_type)
     
     counter = 0
-    for i in res:
+    for i in res.embeddings:
         if float(cos_sim(query_emb.embeddings, i)[0][0]) < threshold:
             print(float(cos_sim(query_emb.embeddings, i)[0][0]))
             counter += 1
