@@ -23,17 +23,15 @@ This project relies on specific libraries and frameworks for LLM access, Vector 
 ## Installation
 ``` Clone this repository:
 Bash
-git clone [https://<your_repository_url>](https://github.com/Sriram-Subramanian-02/bosch_hackathon)
+git clone https://github.com/Sriram-Subramanian-02/bosch_hackathon
 ```
 Use code with caution.
 content_copy
 Install required dependencies:
 ```Bash
 pip install -r requirements.txt
+streamlit run app.py
 ```
-Use code with caution.
-content_copy
-Note: This readme assumes a Python-based project with a requirements.txt file specifying dependencies. Adjust accordingly based on the actual project setup.
 
 ## Usage
 Follow instructions in the config.py file to configure the application (e.g., Vector Database connection details).
