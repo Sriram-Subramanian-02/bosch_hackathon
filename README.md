@@ -21,14 +21,12 @@ Includes a basic user interface for a chat-style Q&A experience.
 This project relies on specific libraries and frameworks for LLM access, Vector Database interaction, and UI development. Refer to the requirements.txt file for a detailed list.
 
 ## Installation
-``` Clone this repository:
-Bash
+```
+Clone this repository:
 git clone https://github.com/Sriram-Subramanian-02/bosch_hackathon
 ```
-Use code with caution.
-content_copy
-Install required dependencies:
-```Bash
+## Install required dependencies:
+```
 pip install -r requirements.txt
 streamlit run app.py
 ```
