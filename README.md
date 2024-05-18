@@ -28,6 +28,9 @@ git clone https://github.com/Sriram-Subramanian-02/bosch_hackathon
 ## Install required dependencies:
 ```
 pip install -r requirements.txt
+```
+## Run the application locally
+```
 streamlit run app.py
 ```
 
