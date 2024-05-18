@@ -30,8 +30,8 @@ from utils import get_latest_data
 
 
 os.environ["COHERE_API_KEY"] = COHERE_API_KEY
-TOP_K = 5
-MAX_DOCS_FOR_CONTEXT = 5
+TOP_K = 10
+MAX_DOCS_FOR_CONTEXT = 10
 
 
 def create_collection(collection_name):
@@ -66,7 +66,7 @@ def reciprocal_rank_fusion(results: list[list], k=60):
         ranked_results: list of documents reranked by RRF
     """
 
-    print("results in rrf function: ", results)
+    # print("\n\n\nresults in rrf function: ", len(results))
 
     fused_scores = {}
     for docs in results:
@@ -150,7 +150,9 @@ def rrf_retriever(query: str) -> list[Document]:
         embeddings=embedding,
     )
 
-    retriever = qdrant.as_retriever()
+    retriever = qdrant.as_retriever(
+        search_kwargs={'k': TOP_K}
+    )
 
     # RRF chain
     chain = (
@@ -174,7 +176,7 @@ def get_response(query, threshold=0.3):
     cohere_client = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
     chat_history = get_latest_data(USER_ID, SESSION_ID)
 
-    context = rrf_retriever("Explain Hyundai Warranty Policy")
+    context = rrf_retriever(query)
     context_list = list()
 
     for i in context:
@@ -202,8 +204,9 @@ def get_response(query, threshold=0.3):
     print(counter)
     prompt = None
 
-    if counter <= 3:
+    if (MAX_DOCS_FOR_CONTEXT - counter) <= 5:
         prompt = f"""
+                You are a chatbot built for helping users understand car's owner manuals, try and ask probing questions related to that alone.
                 Create several question based on question:{query}, context: {context} and chat history of the user: {chat_history}.
                 As similarity between query and context is low, try to ask several probing questions.
                 Ask several followup questions to get further clarity.
@@ -213,6 +216,7 @@ def get_response(query, threshold=0.3):
             """
     else:
         prompt = f"""
+                You are a chatbot built for helping users understand car's owner manuals.
                 Answer the question:{query} only based on the context: {context} and the chat history of the user: {chat_history} provided.
                 Try to answer in bulletin points.
                 Do not use technical words, give easy to understand responses.
