@@ -25,6 +25,7 @@ import numpy as np
 from qdrant_client.http.models import Batch
 
 
+from caching import semantic_cache
 from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, COHERE_API_KEY
 from utils import get_latest_data
 
@@ -32,7 +33,7 @@ from utils import get_latest_data
 os.environ["COHERE_API_KEY"] = COHERE_API_KEY
 TOP_K = 10
 MAX_DOCS_FOR_CONTEXT = 10
-
+semantic_cache = semantic_cache('manual_cache.json')
 
 def create_collection(collection_name):
     client = QdrantClient(
@@ -175,7 +176,11 @@ def calculate_similarity(a, b):
 def get_response(query, threshold=0.3):
     cohere_client = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
     chat_history = get_latest_data(USER_ID, SESSION_ID)
-
+    
+    cache_response = semantic_cache.query_cache(query)
+    if cache_response is not None:
+        return cache_response
+    
     context = rrf_retriever(query)
     context_list = list()
 
@@ -234,6 +239,7 @@ def get_response(query, threshold=0.3):
         temperature=0
     )
 
+    semantic_cache.insert_into_cache(query, query_emb, response.text)
     return response.text
 
 
