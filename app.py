@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import insert_data, get_full_data
+from utils import insert_data, get_full_data, check_and_delete_existing_records
 from constants import USER_ID, SESSION_ID, MONGO_DB_URL, QDRANT_API_KEY, QDRANT_URL, COHERE_API_KEY
 from services import get_response
 
@@ -8,6 +8,8 @@ st.title("BOSCH Hackathon Chatbot")
 
 
 user_question = st.chat_input("What is up?")
+prev_records = check_and_delete_existing_records(USER_ID, SESSION_ID)
+print(prev_records)
 full_data = get_full_data(USER_ID, SESSION_ID)
 full_data.reverse()
 
