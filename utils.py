@@ -121,3 +121,27 @@ def get_full_data(user_id, session_id, collection = get_collection()):
     
     except:
         return []
+
+
+def check_and_delete_existing_records(user_id, session_id, collection=None):
+    if collection is None:
+        collection = get_collection()
+    
+    if collection is None:
+        print("Collection is not available.")
+        return False
+
+    try:
+        query = {"user_id": user_id, "session_id": session_id}
+        count = collection.count_documents(query)
+        
+        if count > 0:
+            collection.delete_many(query)
+            print(f"Deleted {count} existing records for user_id: {user_id} and session_id: {session_id}.")
+            return True
+        else:
+            print("No existing records found.")
+            return False
+    except Exception as e:
+        print(f"Error checking and deleting records: {e}")
+        return False
