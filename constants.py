@@ -1,5 +1,8 @@
-USER_ID = -10
-SESSION_ID = -10
+import numpy as np
+
+
+USER_ID = np.random.randint(10, 100000)
+SESSION_ID = np.random.randint(10, 100000)
 COHERE_API_KEY = "g6WqGnL6XZVDQURCNwy2xtCTqEiihXr7nIZhL2UV"
 QDRANT_URL = "https://8803fa99-7551-4f88-84c3-e134c9bed5de.us-east4-0.gcp.cloud.qdrant.io:6333"
 QDRANT_API_KEY = "EFeN_UhdmAlDNYZHqJBUbZ88Nt7N0MkmvWLgM5Hs4ogNvExLMwNwdQ"
