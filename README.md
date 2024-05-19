@@ -41,3 +41,7 @@ Interact with the application through the provided chat interface.
 
 ## License
 This project is licensed under the [License Name] license. See the LICENSE file for details.
+
+
+## Deployed URL
+https://boschhackathon.streamlit.app/
