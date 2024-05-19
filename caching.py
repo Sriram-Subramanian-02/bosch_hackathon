@@ -1,7 +1,5 @@
 import json
 import faiss
-import time
-import logger
 
 import numpy as np
 import cohere
