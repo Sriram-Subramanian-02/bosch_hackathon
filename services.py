@@ -174,7 +174,8 @@ def calculate_similarity(a, b):
 
 
 def get_response(query, threshold=0.3):
-    cohere_client = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
+    api_key_cohere = "xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp"
+    cohere_client = cohere.Client(api_key=api_key_cohere)
     chat_history = get_latest_data(USER_ID, SESSION_ID)
     
     cache_response = semantic_cache.query_cache(query)
