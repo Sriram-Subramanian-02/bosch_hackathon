@@ -8,8 +8,8 @@ st.title("BOSCH Hackathon Chatbot")
 
 
 user_question = st.chat_input("What is up?")
-prev_records = check_and_delete_existing_records(USER_ID, SESSION_ID)
-print(prev_records)
+# prev_records = check_and_delete_existing_records(USER_ID, SESSION_ID)
+# print(prev_records)
 full_data = get_full_data(USER_ID, SESSION_ID)
 full_data.reverse()
 

@@ -213,6 +213,7 @@ def get_response(query, threshold=0.3):
                 Answer in a polite tone, and convey to the user that you need more clarity to answer the question.
                 Then display the probing questions as bulletin points.
                 Do not use technical words, give easy to understand responses.
+                If the question is a general question, try to interact with the user in a polite way.
             """
     else:
         prompt = f"""
@@ -221,6 +222,7 @@ def get_response(query, threshold=0.3):
                 Try to answer in bulletin points.
                 Do not use technical words, give easy to understand responses.
                 Do not divulge any other details other than query or context.
+                If the question is a general question, try to interact with the user in a polite way.
             """
 
     co = cohere.Client("xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
