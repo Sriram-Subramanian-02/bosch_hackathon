@@ -199,7 +199,6 @@ def return_images_context(image_ids):
 
     must_filters=[models.FieldCondition(key="metadata.chunk_type", match=models.MatchValue(value="Image"))]
 
-    print(should_filters)
     for i in qdrant_client.scroll(collection_name=f"{QDRANT_COLLECTION_NAME}", scroll_filter=models.Filter(should=should_filters, must=must_filters),limit=100)[0]:
         text_to_image_ids[i.payload['page_content']] = i.payload['metadata']['image_ids']
 
@@ -234,17 +233,13 @@ def get_suitable_image(image_ids, query_emb):
 
     model="embed-english-v3.0"
     input_type="search_query"
-    
-    images = co.embed(texts=images_context_values,
+
+    for i in images_context_values:
+        image_emb = co.embed(texts=[i],
                     model=model,
                     input_type=input_type)
+        text_to_scores[i] = float(cos_sim(query_emb.embeddings, image_emb.embeddings)[0][0])
 
-    
-    counter = 0
-    for i in images.embeddings:
-        value = float(cos_sim(query_emb.embeddings, i)[0][0])
-        text_to_scores[images_context_values[counter]] = value
-        counter += 1
 
 
     max_image_context = max(text_to_scores, key=text_to_scores.get)
