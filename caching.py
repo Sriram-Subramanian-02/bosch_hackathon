@@ -6,6 +6,7 @@ import cohere
 from langchain.embeddings.cohere import CohereEmbeddings
 from sentence_transformers import SentenceTransformer
 
+from constants import COHERE_API_KEY
 
 def init_cache():
     index = faiss.IndexFlatL2(1024)
@@ -38,7 +39,7 @@ class semantic_cache:
 
     def query_cache(self, query):
         try:
-            co = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
+            co = cohere.Client(api_key=COHERE_API_KEY)
             model="embed-english-v3.0"
             input_type="search_query"
 

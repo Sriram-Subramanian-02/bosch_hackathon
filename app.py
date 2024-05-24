@@ -21,7 +21,8 @@ for message in full_data:
 
 
 if user_question:
-    response = get_response(user_question)
+    response, image_id = get_response(user_question)
+    print(image_id)
 
     insert_data(USER_ID, SESSION_ID, user_question, response)
 

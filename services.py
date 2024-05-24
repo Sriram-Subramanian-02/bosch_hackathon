@@ -26,7 +26,7 @@ from qdrant_client.http.models import Batch
 
 
 from caching import semantic_cache
-from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, COHERE_API_KEY
+from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, QDRANT_COLLECTION_NAME,COHERE_API_KEY
 from utils import get_latest_data
 
 
@@ -121,8 +121,6 @@ def query_generator(original_query: dict) -> list[str]:
     # add original query
     queries.insert(0, "0. " + query)
 
-    print(queries)
-
     return queries
 
 
@@ -140,19 +138,20 @@ def rrf_retriever(query: str) -> list[Document]:
     embedding = CohereEmbeddings(model = "embed-english-v3.0")
     
     qdrant_client = QdrantClient(
-        "https://8803fa99-7551-4f88-84c3-e134c9bed5de.us-east4-0.gcp.cloud.qdrant.io:6333",
+        QDRANT_URL,
         prefer_grpc=True,
-        api_key="EFeN_UhdmAlDNYZHqJBUbZ88Nt7N0MkmvWLgM5Hs4ogNvExLMwNwdQ",
+        api_key=QDRANT_API_KEY,
     )
 
     qdrant = Qdrant(
         client=qdrant_client,
-        collection_name="owners_manual",
+        collection_name=QDRANT_COLLECTION_NAME,
         embeddings=embedding,
     )
 
     retriever = qdrant.as_retriever(
-        search_kwargs={'k': TOP_K}
+        search_kwargs={'k': TOP_K},
+        metadata={}
     )
 
     # RRF chain
@@ -166,30 +165,49 @@ def rrf_retriever(query: str) -> list[Document]:
     # invoke
     result = chain.invoke({"query": query})
 
-    return result
+    image_ids = []
+    from itertools import chain
+    for document in result:
+        image_ids.append(document.metadata['image_ids'])
+    image_ids = list(chain.from_iterable([item] if isinstance(item, str) else item for item in image_ids if item is not None))
+
+    return result, image_ids
 
 
 def calculate_similarity(a, b):
   return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def get_response(query, threshold=0.3):
-    api_key_cohere = "xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp"
-    cohere_client = cohere.Client(api_key=api_key_cohere)
-    chat_history = get_latest_data(USER_ID, SESSION_ID)
-    
-    cache_response = semantic_cache.query_cache(query)
-    if cache_response is not None:
-        return cache_response
-    
-    context = rrf_retriever(query)
-    context_list = list()
+def return_images_context(image_ids):
+    text_to_image_ids = dict()
 
-    for i in context:
-        context_list.append(i.page_content)
+    qdrant_client = QdrantClient(
+        QDRANT_URL,
+        prefer_grpc=True,
+        api_key=QDRANT_API_KEY,
+    )
 
-    co = cohere.Client(api_key="xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
+    should_filters = list()
 
+    for i in image_ids:
+        should_filters.append(
+            models.FieldCondition(
+                    key="metadata.image_ids",
+                    match=models.MatchValue(value=i),
+                )
+        )
+
+    must_filters=[models.FieldCondition(key="metadata.chunk_type", match=models.MatchValue(value="Image"))]
+
+    print(should_filters)
+    for i in qdrant_client.scroll(collection_name=f"{QDRANT_COLLECTION_NAME}", scroll_filter=models.Filter(should=should_filters, must=must_filters),limit=100)[0]:
+        text_to_image_ids[i.payload['page_content']] = i.payload['metadata']['image_ids']
+
+    return text_to_image_ids
+
+
+def check_probing_conditions(context_list, query_emb, threshold):
+    co = cohere.Client(api_key=COHERE_API_KEY)
     model="embed-english-v3.0"
     input_type="search_query"
 
@@ -197,18 +215,73 @@ def get_response(query, threshold=0.3):
                     model=model,
                     input_type=input_type)
 
-    query_emb = co.embed(texts=[f"{query}"],
-                model=model,
-                input_type=input_type)
-    
     counter = 0
     for i in res.embeddings:
         if float(cos_sim(query_emb.embeddings, i)[0][0]) < threshold:
             print(float(cos_sim(query_emb.embeddings, i)[0][0]))
             counter += 1
 
-    print(counter)
+    return counter
+
+
+
+def get_suitable_image(image_ids, query_emb):
+    text_to_image_ids = return_images_context(image_ids)
+    images_context_values = list(text_to_image_ids.keys())
+    text_to_scores = dict()
+
+    co = cohere.Client(api_key=COHERE_API_KEY)
+
+    model="embed-english-v3.0"
+    input_type="search_query"
+    
+    images = co.embed(texts=images_context_values,
+                    model=model,
+                    input_type=input_type)
+
+    
+    counter = 0
+    for i in images.embeddings:
+        value = float(cos_sim(query_emb.embeddings, i)[0][0])
+        text_to_scores[images_context_values[counter]] = value
+        counter += 1
+
+
+    max_image_context = max(text_to_scores, key=text_to_scores.get)
+    image_id = text_to_image_ids[max_image_context]
+
+    return image_id
+
+
+
+def get_response(query, threshold=0.3):
+    chat_history = get_latest_data(USER_ID, SESSION_ID)
+    
+    cache_response = semantic_cache.query_cache(query)
+    if cache_response is not None:
+        return cache_response
+    
+    context, image_ids = rrf_retriever(query)
+    context_list = list()
+    image_ids = list(set(image_ids))
+
+    for i in context:
+        context_list.append(i.page_content)
+
+    co = cohere.Client(api_key=COHERE_API_KEY)
+
+    model="embed-english-v3.0"
+    input_type="search_query"
+
+    query_emb = co.embed(texts=[f"{query}"],
+                model=model,
+                input_type=input_type)
+    
+    image_id = get_suitable_image(image_ids, query_emb)
+    counter = check_probing_conditions(context_list, query_emb, threshold)
+
     prompt = None
+    flag_probe = False
 
     if (MAX_DOCS_FOR_CONTEXT - counter) <= 5:
         prompt = f"""
@@ -222,6 +295,7 @@ def get_response(query, threshold=0.3):
                 If the question asked is a generic question or causal question answer them without using the context.
                 If the question is a general question, try to interact with the user in a polite way.
             """
+        flag_probe = True
     else:
         prompt = f"""
                 You are a chatbot built for helping users understand car's owner manuals.
@@ -241,7 +315,12 @@ def get_response(query, threshold=0.3):
     )
 
     semantic_cache.insert_into_cache(query, query_emb, response.text)
-    return response.text
+
+    if flag_probe:
+        return response.text, None
+    else:
+        return response.text, image_id
+
 
 
 # def get_response(query, threshold=0.5):
