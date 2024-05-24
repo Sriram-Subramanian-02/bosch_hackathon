@@ -1,5 +1,7 @@
 import streamlit as st
-from utils import insert_data, get_full_data, check_and_delete_existing_records
+import base64
+
+from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, MONGO_DB_URL, QDRANT_API_KEY, QDRANT_URL, COHERE_API_KEY
 from services import get_response
 
@@ -31,5 +33,14 @@ if user_question:
 
     with st.chat_message("assistant"):
         st.write(f"{response}")
+
+        # Display the image if image_id is provided and valid
+        if image_id:
+            try:
+                # Decode the base64-encoded image
+                img_bytes = base64.b64decode(get_file_details(image_id)['encoded_val'])
+                st.image(img_bytes, caption="Related Image", use_column_width=True)
+            except Exception as e:
+                st.error(f"Failed to display image: {e}")
 
 
