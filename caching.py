@@ -18,7 +18,7 @@ def retrieve_cache(json_file):
         with open(json_file, 'r') as file:
             cache = json.load(file)
     except FileNotFoundError:
-        cache = {'questions': [], 'embeddings': [], 'response_text': []}
+        cache = {'questions': [], 'embeddings': [], 'response_text': [], 'image_id': []}
 
     return cache
 
@@ -57,17 +57,18 @@ class semantic_cache:
                     print('Answer recovered from Cache. ')
                     print('response_text: ' + self.cache['response_text'][row_id])
 
-                    return self.cache['response_text'][row_id]
-                return None
-            return None
+                    return self.cache['response_text'][row_id], self.cache['image_id'][row_id]
+                return None, None
+            return None, None
                 
         except Exception as e:
             raise RuntimeError(f"Error during querying cache: {e}")
         
-    def insert_into_cache(self, query, query_embedding, response_text):
+    def insert_into_cache(self, query, query_embedding, response_text, image_id):
         self.cache['questions'].append(query)
         self.cache['embeddings'].append(query_embedding.embeddings)
         self.cache['response_text'].append(response_text)
+        self.cache['image_id'].append(image_id)
 
         self.index.add(np.array(query_embedding.embeddings))
         store_cache(self.json_file, self.cache)

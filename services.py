@@ -310,9 +310,9 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
 def get_response(query, threshold=0.3):
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
     
-    # cache_response = semantic_cache.query_cache(query)
-    # if cache_response is not None:
-    #     return cache_response
+    cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
+    if cache_response is not None:
+        return cache_response, image_ids_from_cache
     
     context, image_ids = rrf_retriever(query)
     context_list = list()
@@ -391,7 +391,7 @@ def get_response(query, threshold=0.3):
         temperature=0
     )
 
-    # semantic_cache.insert_into_cache(query, query_emb, response.text)
+    semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
         return response.text, None
