@@ -6,6 +6,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings.cohere import CohereEmbeddings
 from langchain.llms import Cohere
 import numpy as np
+import time
 from sentence_transformers.util import cos_sim
 from langchain_core.documents.base import Document
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
@@ -23,6 +24,7 @@ from qdrant_client import models, QdrantClient
 import cohere
 import numpy as np
 from qdrant_client.http.models import Batch
+import concurrent.futures
 
 
 from caching import semantic_cache
@@ -210,6 +212,7 @@ def check_probing_conditions(context_list, query_emb, threshold):
     model="embed-english-v3.0"
     input_type="search_query"
 
+    time.sleep(1)
     res = co.embed(texts=context_list,
                     model=model,
                     input_type=input_type)
@@ -224,33 +227,88 @@ def check_probing_conditions(context_list, query_emb, threshold):
 
 
 
-def get_suitable_image(image_ids, query_emb):
+def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
     text_to_image_ids = return_images_context(image_ids)
+    # new_text_to_image_ids = dict()
     images_context_values = list(text_to_image_ids.keys())
-    text_to_scores = dict()
 
     co = cohere.Client(api_key=COHERE_API_KEY)
 
     model="embed-english-v3.0"
     input_type="search_query"
 
-    for i in images_context_values:
-        image_emb = co.embed(texts=[i],
-                    model=model,
-                    input_type=input_type)
-        text_to_scores[i] = float(cos_sim(query_emb.embeddings, image_emb.embeddings)[0][0])
+    # for i in images_context_values:
+    #     # print(i)
+    #     image_emb = co.embed(texts=[i],
+    #                 model=model,
+    #                 input_type=input_type)
+    #     val = float(cos_sim(query_emb.embeddings, image_emb.embeddings)[0][0])
+    #     if val >= img_threshold:
+    #         new_text_to_image_ids[i] = text_to_image_ids[i]
+            # print(i)
+            # print(val)
+            # print(new_text_to_image_ids[i])
+            # print("\n")
+
+    prompt = f"""
+        Given a dictionary: {text_to_image_ids} and string: {query}, choose the key of the dictionary that is almost as close as possible to the string and return the value of the key in the dictionary.
+        Note: Check for similarity between the provided string and keys of the dictionary and only return the value of the key that is similar to the string.        
+        Choose the key of dictionary that is highly similar to the string provided so that I can get the value of the key and display that image in the UI.
+        Return only the value of the key choosen. I do not need anything else.
+    """
+    time.sleep(1)
+    co = cohere.Client(COHERE_API_KEY)
+    response = co.chat(
+        message=prompt,
+        model="command-r",
+        temperature=0
+    )
+    print("\n\n")
+    print(f"answer from llm is: {response.text}")
+    print("\n\n")
 
 
+    
+    max_image_context = None
+    time.sleep(1)
+    for key, value in text_to_image_ids.items():
+        if value == str(response.text):
+            max_image_context = key
 
-    max_image_context = max(text_to_scores, key=text_to_scores.get)
-    image_id = text_to_image_ids[max_image_context]
+    print(f"max_image content is: \n{max_image_context}")
 
-    return image_id
+    if max_image_context is None:
+        return None, None
+    
+    image_emb = co.embed(texts=[max_image_context],
+                model=model,
+                input_type=input_type)
+    val = float(cos_sim(query_emb.embeddings, image_emb.embeddings)[0][0])
 
+    print(f"Image similarity value is {val}")
+    if val >= img_threshold:
+        print("hi there")
+        return str(response.text), max_image_context
 
+    else:
+        return None, None
+        
+    
+
+    # print(f"\n\n{max_image_context}")
+
+    # max_image_context = max(text_to_scores, key=text_to_scores.get)
+    # image_id = text_to_image_ids[max_image_context]
+
+    # for i in text_to_image_ids:
+    #     print(i)
+    #     print(text_to_image_ids[i])
+    #     print("\n\n")
+
+    
 
 def get_response(query, threshold=0.3):
-    chat_history = get_latest_data(USER_ID, SESSION_ID)
+    # chat_history = get_latest_data(USER_ID, SESSION_ID)
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
@@ -272,8 +330,19 @@ def get_response(query, threshold=0.3):
                 model=model,
                 input_type=input_type)
     
-    image_id = get_suitable_image(image_ids, query_emb)
-    counter = check_probing_conditions(context_list, query_emb, threshold)
+    chat_history = None
+    image_id, max_image_content = None, None
+    counter = None
+
+    # Use ThreadPoolExecutor to run functions in parallel
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_chat_history = executor.submit(get_latest_data, USER_ID, SESSION_ID)
+        future_image_id = executor.submit(get_suitable_image, image_ids, query, query_emb)
+        future_counter = executor.submit(check_probing_conditions, context_list, query_emb, threshold)
+        
+        chat_history = future_chat_history.result()
+        image_id, max_image_content = future_image_id.result()
+        counter = future_counter.result()
 
     prompt = None
     flag_probe = False
@@ -292,17 +361,30 @@ def get_response(query, threshold=0.3):
             """
         flag_probe = True
     else:
-        prompt = f"""
-                You are a chatbot built for helping users understand car's owner manuals.
-                Answer the question:{query} only based on the context: {context} and the chat history of the user: {chat_history} provided.
-                Try to answer in bulletin points.
-                Do not use technical words, give easy to understand responses.
-                Do not divulge any other details other than query or context.
-                If the question asked is a generic question or causal question answer them without using the context.
-                If the question is a general question, try to interact with the user in a polite way.
-            """
+        if image_id is None:
+            prompt = f"""
+                    You are a chatbot built for helping users understand car's owner manuals.
+                    Answer the question:{query} only based on the context: {context} and the chat history of the user: {chat_history} provided.
+                    Try to answer in bulletin points.
+                    Do not mention anything about images or figures.
+                    Do not use technical words, give easy to understand responses.
+                    Do not divulge any other details other than query or context.
+                    If the question asked is a generic question or causal question answer them without using the context.
+                    If the question is a general question, try to interact with the user in a polite way.
+                """
+        else:
+            prompt = f"""
+                    You are a chatbot built for helping users understand car's owner manuals.
+                    Answer the question:{query} only based on the context: {context}, the chat history of the user: {chat_history} and this image summary: {max_image_content} provided.
+                    Try to answer in bulletin points.
+                    Do not use technical words, give easy to understand responses.
+                    Do not divulge any other details other than query or context.
+                    If the question asked is a generic question or causal question answer them without using the context.
+                    If the question is a general question, try to interact with the user in a polite way.
+                """
+            
 
-    co = cohere.Client("xxe3X6u8vcTFJgJ8Pc7CfLezwpQiATQcUB56VIUp")
+    co = cohere.Client(COHERE_API_KEY)
     response = co.chat(
         message=prompt,
         model="command-r",
