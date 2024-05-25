@@ -1,5 +1,6 @@
 import streamlit as st
 import base64
+import time
 
 from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, MONGO_DB_URL, QDRANT_API_KEY, QDRANT_URL, COHERE_API_KEY
@@ -23,7 +24,13 @@ for message in full_data:
 
 
 if user_question:
+    start_time = time.time()
     response, image_id = get_response(user_question)
+    end_time = time.time()
+
+    execution_time = end_time - start_time
+    print(f"\n\n\nExecution time: {execution_time} seconds")
+
     print(image_id)
 
     insert_data(USER_ID, SESSION_ID, user_question, response)
