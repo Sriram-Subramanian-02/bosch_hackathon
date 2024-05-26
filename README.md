@@ -34,11 +34,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Usage
-Follow instructions in the config.py file to configure the application (e.g., Vector Database connection details).
-Run the main script (e.g., main.py) to start the application.
-Interact with the application through the provided chat interface.
-
 ## License
 This project is licensed under the [License Name] license. See the LICENSE file for details.
 
