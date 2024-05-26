@@ -153,7 +153,7 @@ def rrf_retriever(query: str) -> list[Document]:
 
     retriever = qdrant.as_retriever(
         search_kwargs={'k': TOP_K},
-        metadata={}
+        metadata={"car_name": "Hyundai Exter"}
     )
 
     # RRF chain
@@ -173,11 +173,58 @@ def rrf_retriever(query: str) -> list[Document]:
         image_ids.append(document.metadata['image_ids'])
     image_ids = list(chain.from_iterable([item] if isinstance(item, str) else item for item in image_ids if item is not None))
 
+    print(image_ids)
     return result, image_ids
 
 
 def calculate_similarity(a, b):
   return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+
+def normal_retriever(query: str) -> list[Document]:
+    """RRF retriever
+
+    Args:
+        query (str): Query string
+
+    Returns:
+        list[Document]: retrieved documents
+    """
+
+    # Retriever
+    embedding = CohereEmbeddings(model = "embed-english-v3.0")
+    
+    qdrant_client = QdrantClient(
+        QDRANT_URL,
+        prefer_grpc=True,
+        api_key=QDRANT_API_KEY,
+    )
+    print(qdrant_client)
+
+    qdrant = Qdrant(
+        client=qdrant_client,
+        collection_name=QDRANT_COLLECTION_NAME,
+        embeddings=embedding,
+    )
+
+    retriever = qdrant.as_retriever(
+        search_kwargs={'k': TOP_K},
+        metadata={}
+    )
+
+    # invoke
+    result = retriever.invoke(query)
+    print(result)
+
+    image_ids = []
+    from itertools import chain
+    for document in result:
+        image_ids.append(document.metadata['image_ids'])
+    image_ids = list(chain.from_iterable([item] if isinstance(item, str) else item for item in image_ids if item is not None))
+
+    print(image_ids)
+
+    return result, image_ids
 
 
 def return_images_context(image_ids):
@@ -223,12 +270,17 @@ def check_probing_conditions(context_list, query_emb, threshold):
             print(float(cos_sim(query_emb.embeddings, i)[0][0]))
             counter += 1
 
+    print(f"counter = {counter}")
+
     return counter
 
 
 
-def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
+def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     text_to_image_ids = return_images_context(image_ids)
+    for i in text_to_image_ids:
+        print(i)
+        print(text_to_image_ids[i])
     # new_text_to_image_ids = dict()
     images_context_values = list(text_to_image_ids.keys())
 
@@ -253,7 +305,8 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
     prompt = f"""
         Given a dictionary: {text_to_image_ids} and string: {query}, choose the key of the dictionary that is almost as close as possible to the string and return the value of the key in the dictionary.
         Note: Check for similarity between the provided string and keys of the dictionary and only return the value of the key that is similar to the string.        
-        Choose the key of dictionary that is highly similar to the string provided so that I can get the value of the key and display that image in the UI.
+        Choose the key of dictionary that is highly similar and closer to the string provided so that I can get the value of the key and display that image in the UI.
+        Extract the car name from the string and then extract the car name from keys of the dictionary. Only give the value of the key when car names are same in both.
         Return only the value of the key choosen. I do not need anything else.
     """
     time.sleep(1)
@@ -275,7 +328,7 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
         if value == str(response.text):
             max_image_context = key
 
-    print(f"max_image content is: \n{max_image_context}")
+    # print(f"max_image content is: \n{max_image_context}")
 
     if max_image_context is None:
         return None, None
@@ -287,7 +340,7 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
 
     print(f"Image similarity value is {val}")
     if val >= img_threshold:
-        print("hi there")
+        # print("hi there")
         return str(response.text), max_image_context
 
     else:
@@ -307,14 +360,14 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.4):
 
     
 
-def get_response(query, threshold=0.3):
+def get_response(query, threshold=0.35):
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
         return cache_response, image_ids_from_cache
     
-    context, image_ids = rrf_retriever(query)
+    context, image_ids = normal_retriever(query)
     context_list = list()
     image_ids = list(set(image_ids))
 
@@ -347,13 +400,14 @@ def get_response(query, threshold=0.3):
     prompt = None
     flag_probe = False
 
-    if (MAX_DOCS_FOR_CONTEXT - counter) <= 5:
+    if (MAX_DOCS_FOR_CONTEXT - counter) < 5:
         prompt = f"""
                 You are a chatbot built for helping users understand car's owner manuals, try and ask probing questions related to that alone.
                 Create several question based on question:{query}, context: {context} and chat history of the user: {chat_history}.
                 As similarity between query and context is low, try to ask several probing questions.
                 Ask several followup questions to get further clarity.
                 Answer in a polite tone, and convey to the user that you need more clarity to answer the question.
+                If the user doesnot specify the car's name, kindly ask for it as a probing question(available car names are HYUNDAI EXTER and TATA NEXON).
                 Then display the probing questions as bulletin points.
                 Do not use technical words, give easy to understand responses.
                 If the question asked is a generic question or causal question answer them without using the context.
@@ -366,6 +420,7 @@ def get_response(query, threshold=0.3):
                     You are a chatbot built for helping users understand car's owner manuals.
                     Answer the question:{query} only based on the context: {context} and the chat history of the user: {chat_history} provided.
                     Try to answer in bulletin points.
+                    If the user doesnot specify the car's name, kindly ask for it as a probing question. Else you should say that this response is for this particular car/cars.
                     Do not mention anything about images or figures.
                     Do not use technical words, give easy to understand responses.
                     Do not divulge any other details other than query or context.
