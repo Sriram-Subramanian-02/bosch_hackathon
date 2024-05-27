@@ -28,11 +28,11 @@ import concurrent.futures
 
 
 from caching import semantic_cache
-from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, QDRANT_COLLECTION_NAME,COHERE_API_KEY
+from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, QDRANT_COLLECTION_NAME,COHERE_API_KEY_2, COHERE_API_KEY_1
 from utils import get_latest_data
 
 
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_1
 TOP_K = 10
 MAX_DOCS_FOR_CONTEXT = 10
 semantic_cache = semantic_cache('manual_cache.json')
@@ -255,7 +255,7 @@ def return_images_context(image_ids):
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
-    co = cohere.Client(api_key=COHERE_API_KEY)
+    co = cohere.Client(api_key=COHERE_API_KEY_1)
     model="embed-english-v3.0"
     input_type="search_query"
 
@@ -284,7 +284,7 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     # new_text_to_image_ids = dict()
     images_context_values = list(text_to_image_ids.keys())
 
-    co = cohere.Client(api_key=COHERE_API_KEY)
+    co = cohere.Client(api_key=COHERE_API_KEY_2)
 
     model="embed-english-v3.0"
     input_type="search_query"
@@ -310,7 +310,7 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
         Return only the value of the key choosen. I do not need anything else.
     """
     time.sleep(1)
-    co = cohere.Client(COHERE_API_KEY)
+    co = cohere.Client(COHERE_API_KEY_2)
     response = co.chat(
         message=prompt,
         model="command-r",
@@ -374,7 +374,7 @@ def get_response(query, threshold=0.35):
     for i in context:
         context_list.append(i.page_content)
 
-    co = cohere.Client(api_key=COHERE_API_KEY)
+    co = cohere.Client(api_key=COHERE_API_KEY_1)
 
     model="embed-english-v3.0"
     input_type="search_query"
@@ -439,7 +439,7 @@ def get_response(query, threshold=0.35):
                 """
             
 
-    co = cohere.Client(COHERE_API_KEY)
+    co = cohere.Client(COHERE_API_KEY_1)
     response = co.chat(
         message=prompt,
         model="command-r",
