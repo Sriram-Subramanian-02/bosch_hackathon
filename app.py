@@ -56,14 +56,19 @@ def main():
 
             if pdf_pages:
                 st.session_state.pdf_pages = pdf_pages
-                show_pdf_btn = st.button('View Reference PDF Contents',on_click=page_switcher,args=(reference_pdf,))
-                if show_pdf_btn:
-                    st.rerun() 
+                st.session_state.show_pdf_btn = True  # Set the flag to show the button
+
+    if st.session_state.get("show_pdf_btn", False):  # Check the flag
+        if st.button('View Reference PDF Contents'):
+            page_switcher(reference_pdf)
+            st.rerun()
 
 def reference_pdf():
     st.title('Reference PDF')
     pdf_pages = st.session_state.pdf_pages
-    back_to_chat_btn = st.button('Go back to Chat')
+    if st.button('Go back to Chat'):
+        st.session_state.runpage = main        
+        st.rerun()
 
     carousel_indicators = ""
     carousel_items = ""
@@ -90,11 +95,7 @@ def reference_pdf():
 
     st.components.v1.html(html_data, height=1000)
 
-    if back_to_chat_btn :
-        st.session_state.runpage = main        
-        st.rerun()
-
 if __name__ == '__main__':
-    if 'runpage' not in st.session_state :
+    if 'runpage' not in st.session_state:
         st.session_state.runpage = main
     st.session_state.runpage()
