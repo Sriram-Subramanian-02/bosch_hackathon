@@ -10,3 +10,11 @@ QDRANT_URL = "https://8803fa99-7551-4f88-84c3-e134c9bed5de.us-east4-0.gcp.cloud.
 QDRANT_API_KEY = "EFeN_UhdmAlDNYZHqJBUbZ88Nt7N0MkmvWLgM5Hs4ogNvExLMwNwdQ"
 QDRANT_COLLECTION_NAME = "owners_manual_chunks"
 MONGO_DB_URL = "mongodb+srv://sriram:Ayynar%40123@msd.ywfrjgy.mongodb.net/?retryWrites=true&w=majority"
+
+pdf_mapping = {
+                "Hyundai Exter": "hyundai_exter.pdf",
+                "Hyundai Verna": "Next_Gen_Verna.pdf",
+                "Tata Nexon": "nexon-owner-manual-2022.pdf",
+                "Tata Punch": "punch-bsvi-09-09-21.pdf"
+                }
+            

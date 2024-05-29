@@ -25,6 +25,10 @@ import cohere
 import numpy as np
 from qdrant_client.http.models import Batch
 import concurrent.futures
+from io import BytesIO
+from pdf2image import convert_from_path
+import streamlit.components.v1 as components
+import base64
 
 
 from caching import semantic_cache
@@ -358,16 +362,41 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     #     print(text_to_image_ids[i])
     #     print("\n\n")
 
+def get_pdf_pages(context):
+    pdf_pages = {}
+    for doc in context:
+        car_name = doc.metadata['car_name']
+        if car_name not in pdf_pages:
+            pdf_pages[car_name] = [doc.metadata['page_number']]
+        else:
+            pdf_pages[car_name].append(doc.metadata['page_number'])
+
+    return pdf_pages
     
+
+def pdf_to_images(pdf_path, pages=None):
+    images = []
+    for page_num in pages:
+        images.extend(convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1))
+
+    image_paths = []
+    for image in images:
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        image_paths.append(img_str)
+    return image_paths
+
 
 def get_response(query, threshold=0.35):
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache
+        return cache_response, image_ids_from_cache, None
     
     context, image_ids = normal_retriever(query)
+    pdf_pages = get_pdf_pages(context)
     context_list = list()
     image_ids = list(set(image_ids))
 
@@ -449,9 +478,9 @@ def get_response(query, threshold=0.35):
     semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
-        return response.text, None
+        return response.text, None, pdf_pages
     else:
-        return response.text, image_id
+        return response.text, image_id, pdf_pages
 
 
 
