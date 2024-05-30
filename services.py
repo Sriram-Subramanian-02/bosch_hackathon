@@ -406,7 +406,7 @@ def get_image_summary(image_bytes):
     end_time = time.time()
     execution_time = end_time - start_time
     print("Model Loaded")
-    print(f"\n\n\nExecution time for loading the model: {execution_time} seconds")
+    print(f"\n\nExecution time for loading the model: {execution_time} seconds")
 
     image_path = f"input_data/user_image_input/input_image.png"
     with open(image_path, 'wb') as f:
@@ -498,7 +498,7 @@ def get_response(query, threshold=0.35):
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache, None
+        return cache_response, image_ids_from_cache, None, None, None
     
     context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)

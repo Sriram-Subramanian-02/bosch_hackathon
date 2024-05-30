@@ -34,11 +34,28 @@ def main():
 
     if user_input:
 
-        if len(user_input['files']) == 0:
-            start_time = time.time()
-            response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
-            end_time = time.time()
+        if user_input['message'] != '':
 
+            start_time = time.time()
+            if len(user_input['files']) == 0:
+                response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
+
+            elif len(user_input['files']) != 0:
+                base64_string = user_input['files'][0]['content']
+                if base64_string.startswith('data:image/png;base64,'):
+                    base64_string = base64_string.replace('data:image/png;base64,', '')
+
+                image_data = base64.b64decode(base64_string)
+                image_summary = get_image_summary(image_data)
+                query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
+                with this data answer the following question {user_input['message']}"""
+
+                response, image_id, pdf_pages, df, table_response = get_response(query)
+
+                with st.chat_message("user"):
+                    st.image(image_data, caption="Uploaded Image", use_column_width=True)
+
+            end_time = time.time()
             execution_time = end_time - start_time
             print(f"\n\n\nExecution time: {execution_time} seconds")
 
