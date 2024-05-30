@@ -29,6 +29,9 @@ from io import BytesIO
 from pdf2image import convert_from_path
 import streamlit.components.v1 as components
 import base64
+from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer
+from PIL import Image
+import torch
 
 
 from caching import semantic_cache
@@ -36,7 +39,7 @@ from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, QDRANT_CO
 from utils import get_latest_data
 
 
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY_1
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_2
 TOP_K = 10
 MAX_DOCS_FOR_CONTEXT = 10
 semantic_cache = semantic_cache('manual_cache.json')
@@ -259,7 +262,7 @@ def return_images_context(image_ids):
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
-    co = cohere.Client(api_key=COHERE_API_KEY_1)
+    co = cohere.Client(api_key=COHERE_API_KEY_2)
     model="embed-english-v3.0"
     input_type="search_query"
 
@@ -362,6 +365,35 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     #     print(text_to_image_ids[i])
     #     print("\n\n")
 
+def get_model_info(model_ID, device):
+	model = CLIPModel.from_pretrained(model_ID).to(device)
+	processor = CLIPProcessor.from_pretrained(model_ID)
+	tokenizer = CLIPTokenizer.from_pretrained(model_ID)
+	return model, processor, tokenizer
+
+
+def get_single_image_embedding(image_path):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_ID = "openai/clip-vit-base-patch32"
+    model, processor, tokenizer = get_model_info(model_ID, device)
+
+    image_path = f"input_data/user_image_input/input_image.png"
+    image.save(open(img_path, "wb"))
+    my_image = Image.open(image_path)
+
+    image = processor(
+        text=None,
+        images=my_image,
+        return_tensors="pt"
+    )["pixel_values"].to(device)
+
+    # Get the image features
+    embedding = model.get_image_features(image)
+    embedding_as_np = embedding.cpu().detach().numpy()
+
+    return embedding_as_np
+
+
 def get_pdf_pages(context):
     pdf_pages = {}
     for doc in context:
@@ -403,7 +435,7 @@ def get_response(query, threshold=0.35):
     for i in context:
         context_list.append(i.page_content)
 
-    co = cohere.Client(api_key=COHERE_API_KEY_1)
+    co = cohere.Client(api_key=COHERE_API_KEY_2)
 
     model="embed-english-v3.0"
     input_type="search_query"
@@ -468,7 +500,7 @@ def get_response(query, threshold=0.35):
                 """
             
 
-    co = cohere.Client(COHERE_API_KEY_1)
+    co = cohere.Client(COHERE_API_KEY_2)
     response = co.chat(
         message=prompt,
         model="command-r",
