@@ -22,10 +22,13 @@ from langchain.chains import ConversationalRetrievalChain
 import pandas as pd
 from qdrant_client import models, QdrantClient
 import cohere
-import pandas as pd
-import json
+import numpy as np
 from qdrant_client.http.models import Batch
 import concurrent.futures
+from io import BytesIO
+from pdf2image import convert_from_path
+import streamlit.components.v1 as components
+import base64
 
 
 from caching import semantic_cache
@@ -183,6 +186,15 @@ def calculate_similarity(a, b):
 
 
 def normal_retriever(query: str) -> list[Document]:
+    """RRF retriever
+
+    Args:
+        query (str): Query string
+
+    Returns:
+        list[Document]: retrieved documents
+    """
+
     # Retriever
     embedding = CohereEmbeddings(model = "embed-english-v3.0")
     
@@ -191,6 +203,7 @@ def normal_retriever(query: str) -> list[Document]:
         prefer_grpc=True,
         api_key=QDRANT_API_KEY,
     )
+    print(qdrant_client)
 
     qdrant = Qdrant(
         client=qdrant_client,
@@ -208,22 +221,14 @@ def normal_retriever(query: str) -> list[Document]:
     print(result)
 
     image_ids = []
-    table_data = list()
     from itertools import chain
     for document in result:
         image_ids.append(document.metadata['image_ids'])
-        if document.metadata['chunk_type'] == 'Table':
-            table_data.append(document.page_content)
     image_ids = list(chain.from_iterable([item] if isinstance(item, str) else item for item in image_ids if item is not None))
 
     print(image_ids)
 
-    # if len(table_data) > 0:
-    #     table_data = str(table_data[0])
-    #     return result, image_ids, table_data
-    
-    # else:
-    return result, image_ids, table_data
+    return result, image_ids
 
 
 def return_images_context(image_ids):
@@ -357,48 +362,30 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     #     print(text_to_image_ids[i])
     #     print("\n\n")
 
+def get_pdf_pages(context):
+    pdf_pages = {}
+    for doc in context:
+        car_name = doc.metadata['car_name']
+        if car_name not in pdf_pages:
+            pdf_pages[car_name] = [doc.metadata['page_number']]
+        else:
+            pdf_pages[car_name].append(doc.metadata['page_number'])
+
+    return pdf_pages
     
-def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5):
-    co = cohere.Client(COHERE_API_KEY_2)
-    model="embed-english-v3.0"
-    input_type="search_query"
 
-    
-    prompt = f"""
-        Reconstruct the table using this table data: {table_data}, question: {query} and context: {context}.
-        Reconstruct only one element of table_data that is most similar to the question.
-        Return the table in json format and do not add anything else like new line characters or tab spaces.
-        If car names in question and table_data does not match return empty string.
-    """
+def pdf_to_images(pdf_path, pages=None):
+    images = []
+    for page_num in pages:
+        images.extend(convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1))
 
-    co = cohere.Client(COHERE_API_KEY_2)
-    response = co.chat(
-        message=prompt,
-        model="command-r",
-        temperature=0
-    )
-    response = response.text
-    print(response)
-    if response == '' or response is None or response == 'None':
-        return None, None
-    formatted_response = response.replace('\n', '').replace('\t', '').replace('`', '').replace('json', '')
-    print(formatted_response)
-    data = json.loads(formatted_response)
-    json_string = json.dumps(data)
-
-    table_emb = co.embed(texts=[json_string],
-                model=model,
-                input_type=input_type)
-    val = float(cos_sim(query_emb.embeddings, table_emb.embeddings)[0][0])
-    print(val)
-    if val < table_threshold:
-        return None, None
-
-    print(json.dumps(data, indent=4))
-    df = pd.DataFrame(data)
-
-    return df, formatted_response
-
+    image_paths = []
+    for image in images:
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        image_paths.append(img_str)
+    return image_paths
 
 
 def get_response(query, threshold=0.35):
@@ -406,9 +393,10 @@ def get_response(query, threshold=0.35):
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache
+        return cache_response, image_ids_from_cache, None
     
-    context, image_ids, table_data = normal_retriever(query)
+    context, image_ids = normal_retriever(query)
+    pdf_pages = get_pdf_pages(context)
     context_list = list()
     image_ids = list(set(image_ids))
 
@@ -426,7 +414,6 @@ def get_response(query, threshold=0.35):
     
     chat_history = None
     image_id, max_image_content = None, None
-    df, table_response = None, None
     counter = None
 
     # Use ThreadPoolExecutor to run functions in parallel
@@ -434,11 +421,9 @@ def get_response(query, threshold=0.35):
         future_chat_history = executor.submit(get_latest_data, USER_ID, SESSION_ID)
         future_image_id = executor.submit(get_suitable_image, image_ids, query, query_emb)
         future_counter = executor.submit(check_probing_conditions, context_list, query_emb, threshold)
-        future_table_data = executor.submit(reconstruct_table, table_data, context_list, query, query_emb)
         
         chat_history = future_chat_history.result()
         image_id, max_image_content = future_image_id.result()
-        df, table_response = future_table_data.result()
         counter = future_counter.result()
 
     prompt = None
@@ -451,7 +436,7 @@ def get_response(query, threshold=0.35):
                 As similarity between query and context is low, try to ask several probing questions.
                 Ask several followup questions to get further clarity.
                 Answer in a polite tone, and convey to the user that you need more clarity to answer the question.
-                If the user doesnot specify the car's name, kindly ask for it as a probing question(available car names are HYUNDAI EXTER, HYUNDAI VERNA, TATA PUNCH and TATA NEXON).
+                If the user doesnot specify the car's name, kindly ask for it as a probing question(available car names are HYUNDAI EXTER and TATA NEXON).
                 Then display the probing questions as bulletin points.
                 Do not use technical words, give easy to understand responses.
                 If the question asked is a generic question or causal question answer them without using the context.
@@ -493,9 +478,9 @@ def get_response(query, threshold=0.35):
     semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
-        return response.text, None
+        return response.text, None, pdf_pages
     else:
-        return response.text, image_id, df
+        return response.text, image_id, pdf_pages
 
 
 
