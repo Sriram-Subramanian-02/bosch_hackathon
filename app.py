@@ -36,7 +36,7 @@ def main():
 
         if len(user_input['files']) == 0:
             start_time = time.time()
-            response, image_id, pdf_pages = get_response(user_input['message'])
+            response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
             end_time = time.time()
 
             execution_time = end_time - start_time
@@ -52,18 +52,22 @@ def main():
             with st.chat_message("assistant"):
                 st.write(f"{response}")
 
-                # Display the image if image_id is provided and valid
-                if image_id:
-                    try:
-                        # Decode the base64-encoded image
-                        img_bytes = base64.b64decode(get_file_details(image_id)['encoded_val'])
-                        st.image(img_bytes, caption="Related Image", use_column_width=True)
-                    except Exception as e:
-                        st.error(f"Failed to display image: {e}")
+            if df is not None:
+                st.dataframe(df)
+                st.write(f"{table_response}")
 
-                if pdf_pages:
-                    st.session_state.pdf_pages = pdf_pages
-                    st.session_state.show_pdf_btn = True  # Set the flag to show the button
+            # Display the image if image_id is provided and valid
+            if image_id:
+                try:
+                    # Decode the base64-encoded image
+                    img_bytes = base64.b64decode(get_file_details(image_id)['encoded_val'])
+                    st.image(img_bytes, caption="Related Image", use_column_width=True)
+                except Exception as e:
+                    st.error(f"Failed to display image: {e}")
+
+            if pdf_pages:
+                st.session_state.pdf_pages = pdf_pages
+                st.session_state.show_pdf_btn = True  # Set the flag to show the button
 
         if user_input['message'] == '' and len(user_input['files']) != 0:
             base64_string = user_input['files'][0]['content']
