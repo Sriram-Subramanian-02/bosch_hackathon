@@ -32,6 +32,7 @@ import base64
 from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer
 from PIL import Image
 import torch
+import io
 
 
 from caching import semantic_cache
@@ -365,20 +366,48 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     #     print(text_to_image_ids[i])
     #     print("\n\n")
 
-def get_model_info(model_ID, device):
-	model = CLIPModel.from_pretrained(model_ID).to(device)
-	processor = CLIPProcessor.from_pretrained(model_ID)
-	tokenizer = CLIPTokenizer.from_pretrained(model_ID)
-	return model, processor, tokenizer
 
-
-def get_single_image_embedding(image_path):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+def load_clip_model(file_path = "models"):
     model_ID = "openai/clip-vit-base-patch32"
-    model, processor, tokenizer = get_model_info(model_ID, device)
+
+    model = CLIPModel.from_pretrained(f"{file_path}/clip_model")
+    processor = CLIPProcessor.from_pretrained(model_ID)
+
+    return model, processor
+
+
+def get_image_context_from_QDrant(image_vector):
+        qdrant_client = QdrantClient(
+            "https://35ebdc7d-ec99-4ebd-896c-ff5705cf369b.us-east4-0.gcp.cloud.qdrant.io:6333",
+            prefer_grpc=True,
+            api_key="9dKJsKOYwT0vGlWPrZXBSIlbUzvRdJ1XkM0_floo8FmYCOHX_Y0y-Q",
+        )
+
+        search_result = qdrant_client.search(
+            collection_name="owners_manual_images",
+            query_vector=image_vector[0].tolist(),
+            limit = 1
+        )
+
+        payloads = [hit.payload for hit in search_result]
+        print(payloads)
+        image_id = payloads[0]['metadata']['image_id']
+        image_context = return_images_context([image_id])
+        image_summary = list(image_context.keys())[0]
+        print(image_summary)
+        return image_summary
+
+
+def get_image_summary(image_bytes):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Loading Clip model")
+    model, processor = load_clip_model()
+    print("Model Loaded")
 
     image_path = f"input_data/user_image_input/input_image.png"
-    image.save(open(img_path, "wb"))
+    with open(image_path, 'wb') as f:
+        f.write(image_bytes)
+
     my_image = Image.open(image_path)
 
     image = processor(
@@ -390,8 +419,7 @@ def get_single_image_embedding(image_path):
     # Get the image features
     embedding = model.get_image_features(image)
     embedding_as_np = embedding.cpu().detach().numpy()
-
-    return embedding_as_np
+    return get_image_context_from_QDrant(embedding_as_np)
 
 
 def get_pdf_pages(context):

@@ -7,7 +7,7 @@ from streamlit_float import float_init
 
 from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, pdf_mapping
-from services import get_response, pdf_to_images, get_single_image_embedding 
+from services import get_response, pdf_to_images, get_image_summary 
 
 float_init()
 
@@ -71,13 +71,12 @@ def main():
                 base64_string = base64_string.replace('data:image/png;base64,', '')
 
             image_data = base64.b64decode(base64_string)
-            image_embedding = get_single_image_embedding(image_data)
-            print("..........",len(image_embedding))
+            image_summary = get_image_summary(image_data)
 
             with st.chat_message("user"):
                 st.image(image_data, caption="Uploaded Image", use_column_width=True)
             with st.chat_message("assistant"):
-                st.write(f"hiiii")
+                st.write(image_summary)
 
 
     if st.session_state.get("show_pdf_btn", False):  # Check the flag
