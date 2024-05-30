@@ -406,7 +406,7 @@ def get_image_summary(image_bytes):
     end_time = time.time()
     execution_time = end_time - start_time
     print("Model Loaded")
-    print(f"\n\n\nExecution time: {execution_time} seconds")
+    print(f"\n\n\nExecution time for loading the model: {execution_time} seconds")
 
     image_path = f"input_data/user_image_input/input_image.png"
     with open(image_path, 'wb') as f:
