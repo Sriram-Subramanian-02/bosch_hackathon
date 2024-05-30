@@ -523,7 +523,7 @@ def get_response(query, threshold=0.35):
     semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
-        return response.text, None, pdf_pages, None
+        return response.text, None, pdf_pages, None, None
     else:
         return response.text, image_id, pdf_pages, df, table_response
 
