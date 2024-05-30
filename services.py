@@ -37,7 +37,7 @@ from constants import USER_ID, SESSION_ID, QDRANT_API_KEY, QDRANT_URL, QDRANT_CO
 from utils import get_latest_data
 
 
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY_1
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_2
 TOP_K = 10
 MAX_DOCS_FOR_CONTEXT = 10
 semantic_cache = semantic_cache('manual_cache.json')
@@ -259,7 +259,7 @@ def return_images_context(image_ids):
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
-    co = cohere.Client(api_key=COHERE_API_KEY_1)
+    co = cohere.Client(api_key=COHERE_API_KEY_2)
     model="embed-english-v3.0"
     input_type="search_query"
 
@@ -431,8 +431,6 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
 
 def get_response(query, threshold=0.35):
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
-
-    print("hi there")
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
@@ -446,7 +444,7 @@ def get_response(query, threshold=0.35):
     for i in context:
         context_list.append(i.page_content)
 
-    co = cohere.Client(api_key=COHERE_API_KEY_1)
+    co = cohere.Client(api_key=COHERE_API_KEY_2)
 
     model="embed-english-v3.0"
     input_type="search_query"
@@ -515,7 +513,7 @@ def get_response(query, threshold=0.35):
                 """
             
 
-    co = cohere.Client(COHERE_API_KEY_1)
+    co = cohere.Client(COHERE_API_KEY_2)
     response = co.chat(
         message=prompt,
         model="command-r",
@@ -527,7 +525,7 @@ def get_response(query, threshold=0.35):
     if flag_probe:
         return response.text, None, pdf_pages, None
     else:
-        return response.text, image_id, pdf_pages, df
+        return response.text, image_id, pdf_pages, df, table_response
 
 
 

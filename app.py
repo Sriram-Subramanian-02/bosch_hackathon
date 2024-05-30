@@ -29,8 +29,7 @@ def main():
 
     if user_question:
         start_time = time.time()
-        print(user_question)
-        response, image_id, pdf_pages, df = get_response(user_question)
+        response, image_id, pdf_pages, df, table_response = get_response(user_question)
         end_time = time.time()
 
         execution_time = end_time - start_time
@@ -48,6 +47,7 @@ def main():
 
             if df is not None:
                 st.dataframe(df)
+                st.write(f"{table_response}")
 
             # Display the image if image_id is provided and valid
             if image_id:
