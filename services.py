@@ -182,15 +182,6 @@ def calculate_similarity(a, b):
 
 
 def normal_retriever(query: str) -> list[Document]:
-    """RRF retriever
-
-    Args:
-        query (str): Query string
-
-    Returns:
-        list[Document]: retrieved documents
-    """
-
     # Retriever
     embedding = CohereEmbeddings(model = "embed-english-v3.0")
     
