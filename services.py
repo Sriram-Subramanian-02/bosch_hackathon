@@ -20,6 +20,7 @@ from langchain.document_loaders import TextLoader
 import qdrant_client
 from langchain.chains import ConversationalRetrievalChain
 import pandas as pd
+import json
 from qdrant_client import models, QdrantClient
 import cohere
 import numpy as np
@@ -186,15 +187,6 @@ def calculate_similarity(a, b):
 
 
 def normal_retriever(query: str) -> list[Document]:
-    """RRF retriever
-
-    Args:
-        query (str): Query string
-
-    Returns:
-        list[Document]: retrieved documents
-    """
-
     # Retriever
     embedding = CohereEmbeddings(model = "embed-english-v3.0")
     
@@ -221,14 +213,22 @@ def normal_retriever(query: str) -> list[Document]:
     print(result)
 
     image_ids = []
+    table_data = list()
     from itertools import chain
     for document in result:
         image_ids.append(document.metadata['image_ids'])
+        if document.metadata['chunk_type'] == 'Table':
+            table_data.append(document.page_content)
     image_ids = list(chain.from_iterable([item] if isinstance(item, str) else item for item in image_ids if item is not None))
 
     print(image_ids)
 
-    return result, image_ids
+    # if len(table_data) > 0:
+    #     table_data = str(table_data[0])
+    #     return result, image_ids, table_data
+    
+    # else:
+    return result, image_ids, table_data
 
 
 def return_images_context(image_ids):
@@ -388,14 +388,57 @@ def pdf_to_images(pdf_path, pages=None):
     return image_paths
 
 
+def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5):
+    model="embed-english-v3.0"
+    input_type="search_query"
+
+    
+    prompt = f"""
+        Reconstruct the table using this table data: {table_data}, question: {query} and context: {context}.
+        Reconstruct only one element of table_data that is most similar to the question.
+        Return the table in json format and do not add anything else like new line characters or tab spaces.
+        If car names in question and table_data does not match return empty string.
+    """
+
+    co = cohere.Client(COHERE_API_KEY_2)
+    response = co.chat(
+        message=prompt,
+        model="command-r",
+        temperature=0
+    )
+    response = response.text
+    print(response)
+    if response == '' or response is None or response == 'None':
+        return None, None
+    formatted_response = response.replace('\n', '').replace('\t', '').replace('`', '').replace('json', '')
+    print(formatted_response)
+    data = json.loads(formatted_response)
+    json_string = json.dumps(data)
+
+    table_emb = co.embed(texts=[json_string],
+                model=model,
+                input_type=input_type)
+    val = float(cos_sim(query_emb.embeddings, table_emb.embeddings)[0][0])
+    print(val)
+    if val < table_threshold:
+        return None, None
+
+    print(json.dumps(data, indent=4))
+    df = pd.DataFrame(data)
+
+    return df, formatted_response
+
+
 def get_response(query, threshold=0.35):
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
+
+    print("hi there")
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
         return cache_response, image_ids_from_cache, None
     
-    context, image_ids = normal_retriever(query)
+    context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)
     context_list = list()
     image_ids = list(set(image_ids))
@@ -415,15 +458,19 @@ def get_response(query, threshold=0.35):
     chat_history = None
     image_id, max_image_content = None, None
     counter = None
+    df, table_response = None, None
 
     # Use ThreadPoolExecutor to run functions in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future_chat_history = executor.submit(get_latest_data, USER_ID, SESSION_ID)
         future_image_id = executor.submit(get_suitable_image, image_ids, query, query_emb)
         future_counter = executor.submit(check_probing_conditions, context_list, query_emb, threshold)
+        future_table_response = executor.submit(reconstruct_table, table_data, context_list, f"{query}", query_emb)
+
         
         chat_history = future_chat_history.result()
         image_id, max_image_content = future_image_id.result()
+        df, table_response = future_table_response.result()
         counter = future_counter.result()
 
     prompt = None
@@ -478,9 +525,9 @@ def get_response(query, threshold=0.35):
     semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
-        return response.text, None, pdf_pages
+        return response.text, None, pdf_pages, None
     else:
-        return response.text, image_id, pdf_pages
+        return response.text, image_id, pdf_pages, df
 
 
 
