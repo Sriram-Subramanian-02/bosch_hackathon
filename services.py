@@ -430,6 +430,26 @@ def get_image_summary(image_bytes, image_format):
     return get_image_context_from_QDrant(embedding_as_np)
 
 
+def get_image_context_from_QDrant_roboflow(image_vector):
+        qdrant_client = QdrantClient(
+            "https://35ebdc7d-ec99-4ebd-896c-ff5705cf369b.us-east4-0.gcp.cloud.qdrant.io:6333",
+            prefer_grpc=True,
+            api_key="9dKJsKOYwT0vGlWPrZXBSIlbUzvRdJ1XkM0_floo8FmYCOHX_Y0y-Q",
+        )
+
+        search_result = qdrant_client.search(
+            collection_name="owners_manual_images_roboflow",
+            query_vector=image_vector,
+            limit = 1
+        )
+
+        payloads = [hit.payload for hit in search_result]
+        image_id = payloads[0]['metadata']['image_id']
+        image_context = return_images_context([image_id])
+        image_summary = list(image_context.keys())[0]
+        return image_summary
+
+
 def encode_image(image_path):
     ''' Getting the base64 string '''
     with open(image_path, "rb") as image_file:
@@ -456,10 +476,10 @@ def get_image_summary_roboflow(image_path):
     embeddings = res.json()
 
     if "embeddings" in embeddings:
-        return get_image_context_from_QDrant(embeddings['embeddings'][0])
+        return get_image_context_from_QDrant_roboflow(embeddings['embeddings'][0])
     else:
         return None
-
+    
 
 def get_pdf_pages(context):
     pdf_pages = {}
