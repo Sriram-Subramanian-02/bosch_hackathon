@@ -30,6 +30,10 @@ from io import BytesIO
 from pdf2image import convert_from_path
 import streamlit.components.v1 as components
 import base64
+from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer
+from PIL import Image
+import torch
+import io
 
 
 from caching import semantic_cache
@@ -362,6 +366,70 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     #     print(text_to_image_ids[i])
     #     print("\n\n")
 
+
+def load_clip_model(file_path = "models"):
+    model_ID = "openai/clip-vit-base-patch32"
+
+    model = CLIPModel.from_pretrained(f"{file_path}/clip_model")
+    processor = CLIPProcessor.from_pretrained(model_ID)
+
+    return model, processor
+
+
+def get_image_context_from_QDrant(image_vector):
+        qdrant_client = QdrantClient(
+            "https://35ebdc7d-ec99-4ebd-896c-ff5705cf369b.us-east4-0.gcp.cloud.qdrant.io:6333",
+            prefer_grpc=True,
+            api_key="9dKJsKOYwT0vGlWPrZXBSIlbUzvRdJ1XkM0_floo8FmYCOHX_Y0y-Q",
+        )
+
+        search_result = qdrant_client.search(
+            collection_name="owners_manual_images",
+            query_vector=image_vector[0].tolist(),
+            limit = 1
+        )
+
+        payloads = [hit.payload for hit in search_result]
+        print(payloads)
+        image_id = payloads[0]['metadata']['image_id']
+        image_context = return_images_context([image_id])
+        image_summary = list(image_context.keys())[0]
+        print(image_summary)
+        return image_summary
+
+
+def get_image_summary(image_bytes, image_format):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Loading Clip model")
+    start_time = time.time()
+    model, processor = load_clip_model()
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print("Model Loaded")
+    print(f"\n\nExecution time for loading the model: {execution_time} seconds")
+
+    input_image_directory_path = "input_data/user_image_input"
+    if not os.path.exists(input_image_directory_path):
+        os.makedirs(input_image_directory_path, exist_ok=True)
+        
+    image_path = f"input_data/user_image_input/input_image.{image_format}"
+    with open(image_path, 'wb') as f:
+        f.write(image_bytes)
+
+    my_image = Image.open(image_path)
+
+    image = processor(
+        text=None,
+        images=my_image,
+        return_tensors="pt"
+    )["pixel_values"].to(device)
+
+    # Get the image features
+    embedding = model.get_image_features(image)
+    embedding_as_np = embedding.cpu().detach().numpy()
+    return get_image_context_from_QDrant(embedding_as_np)
+
+
 def get_pdf_pages(context):
     pdf_pages = {}
     for doc in context:
@@ -398,6 +466,7 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
         Reconstruct only one element of table_data that is most similar to the question.
         Return the table in json format and do not add anything else like new line characters or tab spaces.
         If car names in question and table_data does not match return empty string.
+        If you feel that json format that you are returning is not similar to question, return empty string.
     """
 
     co = cohere.Client(COHERE_API_KEY_2)
@@ -412,21 +481,29 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
         return None, None
     formatted_response = response.replace('\n', '').replace('\t', '').replace('`', '').replace('json', '')
     print(formatted_response)
-    data = json.loads(formatted_response)
-    json_string = json.dumps(data)
+    try:
+        data = json.loads(formatted_response)
+        json_string = json.dumps(data)
 
-    table_emb = co.embed(texts=[json_string],
-                model=model,
-                input_type=input_type)
-    val = float(cos_sim(query_emb.embeddings, table_emb.embeddings)[0][0])
-    print(val)
-    if val < table_threshold:
-        return None, None
+        table_emb = co.embed(texts=[json_string],
+                    model=model,
+                    input_type=input_type)
+        val = float(cos_sim(query_emb.embeddings, table_emb.embeddings)[0][0])
+        print(val)
+        if val < table_threshold:
+            return None, None
 
-    print(json.dumps(data, indent=4))
-    df = pd.DataFrame(data)
+        print(json.dumps(data, indent=4))
+        try:
+            df = pd.DataFrame(data)
 
-    return df, formatted_response
+            return df, formatted_response
+    
+        except:
+            return None, data
+        
+    except:
+        return None, formatted_response
 
 
 def get_response(query, threshold=0.35):
@@ -434,7 +511,7 @@ def get_response(query, threshold=0.35):
     
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache, None
+        return cache_response, image_ids_from_cache, None, None, None
     
     context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)

@@ -1,20 +1,27 @@
 import streamlit as st
 import base64
 import time
+import shutil
+import os
+
+from file_chat_input import file_chat_input
+from streamlit_float import float_init
 
 from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, pdf_mapping
-from services import get_response, pdf_to_images
+from services import get_response, pdf_to_images, get_image_summary 
 
+float_init()
 
 def page_switcher(page):
     st.session_state.runpage = page
 
 def main():
-    st.set_page_config(page_title="BOSCH Hackathon Chatbot")
     st.title("BOSCH Hackathon Chatbot")
-
-    user_question = st.chat_input("What is up?")
+    container = st.container()
+    with container:
+        user_input = file_chat_input("What is up?")
+    
     # prev_records = check_and_delete_existing_records(USER_ID, SESSION_ID)
     # print(prev_records)
     full_data = get_full_data(USER_ID, SESSION_ID)
@@ -27,27 +34,66 @@ def main():
             st.markdown(message["response"])
 
 
-    if user_question:
-        start_time = time.time()
-        response, image_id, pdf_pages, df, table_response = get_response(user_question)
-        end_time = time.time()
+    if user_input:
+        response, image_id, pdf_pages, df, table_response = None, None, None, None, None
 
-        execution_time = end_time - start_time
-        print(f"\n\n\nExecution time: {execution_time} seconds")
+        if user_input['message'] != '':
 
-        print(image_id)
+            start_time = time.time()
+            if len(user_input['files']) == 0:
+                print("hi1")
+                response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
 
-        insert_data(USER_ID, SESSION_ID, user_question, response)
+            elif len(user_input['files']) != 0:
+                print("hi2")
+                base64_string = user_input['files'][0]['content']
+                image_format = None
+                if base64_string.startswith('data:image/png;base64,'):
+                    base64_string = base64_string.replace('data:image/png;base64,', '')
+                    image_format = 'png'
+                elif base64_string.startswith('data:image/jpeg;base64,'):
+                    base64_string = base64_string.replace('data:image/jpeg;base64,', '')
+                    image_format = 'jpeg'
+                elif base64_string.startswith('data:image/jpg;base64,'):
+                    base64_string = base64_string.replace('data:image/jpg;base64,', '')
+                    image_format = 'jpg'
 
-        with st.chat_message("user"):
-            st.write(f"{user_question}")
+                image_data = base64.b64decode(base64_string)
+                image_summary = get_image_summary(image_data, image_format)
+                query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
+                with this data answer the following question {user_input['message']}"""
 
-        with st.chat_message("assistant"):
-            st.write(f"{response}")
+                response, image_id, pdf_pages, df, table_response = get_response(query)
+
+                with st.chat_message("user"):
+                    st.image(image_data, caption="Uploaded Image", use_column_width=True)
+                
+                input_image_directory_path = "input_data/user_image_input"
+                if os.path.exists(input_image_directory_path) and os.path.isdir(input_image_directory_path):
+                    shutil.rmtree(input_image_directory_path)
+
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"\n\n\nExecution time: {execution_time} seconds")
+
+            print(image_id)
+
+            insert_data(USER_ID, SESSION_ID, user_input['message'], response)
+
+            with st.chat_message("user"):
+                st.write(f"{user_input['message']}")
+
+            with st.chat_message("assistant"):
+                st.write(f"{response}")
 
             if df is not None:
                 st.dataframe(df)
+                st.write("Related Table")
                 st.write(f"{table_response}")
+            
+            if df is None and table_response is not None:
+                st.write(f"{table_response}")
+                st.write("Related JSON Data")
 
             # Display the image if image_id is provided and valid
             if image_id:
@@ -62,10 +108,35 @@ def main():
                 st.session_state.pdf_pages = pdf_pages
                 st.session_state.show_pdf_btn = True  # Set the flag to show the button
 
+        if user_input['message'] == '' and len(user_input['files']) != 0:
+            print("hi3")
+            base64_string = user_input['files'][0]['content']
+            image_format = None
+            if base64_string.startswith('data:image/png;base64,'):
+                base64_string = base64_string.replace('data:image/png;base64,', '')
+                image_format = 'png'
+            elif base64_string.startswith('data:image/jpeg;base64,'):
+                base64_string = base64_string.replace('data:image/jpeg;base64,', '')
+                image_format = 'jpeg'
+            elif base64_string.startswith('data:image/jpg;base64,'):
+                base64_string = base64_string.replace('data:image/jpg;base64,', '')
+                image_format = 'jpg'
+
+            image_data = base64.b64decode(base64_string)
+            image_summary = get_image_summary(image_data, image_format)
+
+            with st.chat_message("user"):
+                st.image(image_data, caption="Uploaded Image", use_column_width=True)
+            with st.chat_message("assistant"):
+                st.write(image_summary)
+
+
     if st.session_state.get("show_pdf_btn", False):  # Check the flag
         if st.button('View Reference PDF Contents'):
             page_switcher(reference_pdf)
             st.rerun()
+
+    container.float("bottom: 0")
 
 def reference_pdf():
     st.title('Reference PDF')
