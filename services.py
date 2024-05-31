@@ -408,6 +408,10 @@ def get_image_summary(image_bytes, image_format):
     print("Model Loaded")
     print(f"\n\nExecution time for loading the model: {execution_time} seconds")
 
+    input_image_directory_path = "input_data/user_image_input"
+    if not os.path.exists(input_image_directory_path):
+        os.makedirs(input_image_directory_path, exist_ok=True)
+        
     image_path = f"input_data/user_image_input/input_image.{image_format}"
     with open(image_path, 'wb') as f:
         f.write(image_bytes)

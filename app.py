@@ -1,6 +1,8 @@
 import streamlit as st
 import base64
 import time
+import shutil
+import os
 
 from file_chat_input import file_chat_input
 from streamlit_float import float_init
@@ -62,6 +64,10 @@ def main():
 
                 with st.chat_message("user"):
                     st.image(image_data, caption="Uploaded Image", use_column_width=True)
+                
+                input_image_directory_path = "input_data/user_image_input"
+                if os.path.exists(input_image_directory_path) and os.path.isdir(input_image_directory_path):
+                    shutil.rmtree(input_image_directory_path)
 
             end_time = time.time()
             execution_time = end_time - start_time
