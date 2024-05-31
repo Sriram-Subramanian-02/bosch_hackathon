@@ -6,7 +6,7 @@ import os
 
 from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, pdf_mapping
-from services import get_response, pdf_to_images, get_image_summary 
+from services import get_response, pdf_to_images, get_image_summary, get_image_summary_roboflow
 
 def page_switcher(page):
     st.session_state.runpage = page
@@ -18,6 +18,7 @@ def main():
 
 
     user_question = st.chat_input("Ask a Question...")
+    file_exists = False
     uploaded_file = st.file_uploader(label="Choose a file", type=['png', 'jpg', 'jpeg'], accept_multiple_files=False)
     # if uploaded_file:
     #     st.write("filename:", uploaded_file.name)
@@ -76,16 +77,41 @@ def main():
                     st.session_state.show_pdf_btn = True  # Set the flag to show the button
 
         else:
+            # image_bytes = uploaded_file.read()
+            # image_format = uploaded_file.type.split('/')[1]  # Get the image format from the MIME type
+            # image_summary = get_image_summary(image_bytes, image_format)
             image_bytes = uploaded_file.read()
             image_format = uploaded_file.type.split('/')[1]  # Get the image format from the MIME type
-            image_summary = get_image_summary(image_bytes, image_format)
+
+            # Save the uploaded image to a local path
+            input_image_directory_path = "input_data/user_image_input"
+            if not os.path.exists(input_image_directory_path):
+                os.makedirs(input_image_directory_path, exist_ok=True)
+            
+            image_path = f"{input_image_directory_path}/uploaded_image.{image_format}"
+            
+            # Check if the file already exists and delete it
+            if os.path.exists(image_path):
+                file_exists = True
+                os.remove(image_path)
+            else:
+                file_exists = False
+                
+            
+            # Write the new image file
+            with open(image_path, 'wb') as f:
+                f.write(image_bytes)
+
+            image_summary = get_image_summary_roboflow(image_path)
+
             query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
             with this data answer the following question {user_question}"""
 
             response, image_id, pdf_pages, df, table_response = get_response(query)
 
             with st.chat_message("user"):
-                st.image(image_bytes, caption="Uploaded Image", use_column_width=True)
+                if file_exists:
+                    st.image(image_bytes, caption="Uploaded Image", use_column_width=True)
                 st.write(f"{user_question}")
             
             input_image_directory_path = "input_data/user_image_input"
@@ -116,6 +142,8 @@ def main():
                 if pdf_pages:
                     st.session_state.pdf_pages = pdf_pages
                     st.session_state.show_pdf_btn = True  # Set the flag to show the button
+
+            file_exists = False
 
     if st.session_state.get("show_pdf_btn", False):  # Check the flag
         if st.button('View Reference PDF Contents'):
