@@ -9,7 +9,7 @@ from streamlit_float import float_init
 
 from utils import insert_data, get_full_data, get_file_details
 from constants import USER_ID, SESSION_ID, pdf_mapping
-from services import get_response, pdf_to_images, get_image_summary 
+from services import get_response, pdf_to_images, get_image_summary_roboflow
 
 float_init()
 
@@ -59,7 +59,12 @@ def main():
                     image_format = 'jpg'
 
                 image_data = base64.b64decode(base64_string)
-                image_summary = get_image_summary(image_data, image_format)
+                image_path = f"input_data/user_image_input/input_image.{image_format}"
+                with open(image_path, 'wb') as f:
+                    f.write(image_data)
+
+                image_summary = get_image_summary_roboflow(image_path)
+
                 query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
                 with this data answer the following question {user_input['message']}"""
 
@@ -124,7 +129,11 @@ def main():
                 image_format = 'jpg'
 
             image_data = base64.b64decode(base64_string)
-            image_summary = get_image_summary(image_data, image_format)
+            image_path = f"input_data/user_image_input/input_image.{image_format}"
+            with open(image_path, 'wb') as f:
+                f.write(image_data)
+
+            image_summary = get_image_summary_roboflow(image_path)
 
             with st.chat_message("user"):
                 st.image(image_data, caption="Uploaded Image", use_column_width=True)

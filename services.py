@@ -384,8 +384,8 @@ def get_image_context_from_QDrant(image_vector):
         )
 
         search_result = qdrant_client.search(
-            collection_name="owners_manual_images",
-            query_vector=image_vector[0].tolist(),
+            collection_name="owners_manual_images_roboflow",
+            query_vector=image_vector,
             limit = 1
         )
 
