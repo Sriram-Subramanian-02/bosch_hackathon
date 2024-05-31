@@ -35,14 +35,17 @@ def main():
 
 
     if user_input:
+        response, image_id, pdf_pages, df, table_response = None, None, None, None, None
 
         if user_input['message'] != '':
 
             start_time = time.time()
             if len(user_input['files']) == 0:
+                print("hi1")
                 response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
 
             elif len(user_input['files']) != 0:
+                print("hi2")
                 base64_string = user_input['files'][0]['content']
                 image_format = None
                 if base64_string.startswith('data:image/png;base64,'):
@@ -85,7 +88,12 @@ def main():
 
             if df is not None:
                 st.dataframe(df)
+                st.write("Related Table")
                 st.write(f"{table_response}")
+            
+            if df is None and table_response is not None:
+                st.write(f"{table_response}")
+                st.write("Related JSON Data")
 
             # Display the image if image_id is provided and valid
             if image_id:
@@ -101,6 +109,7 @@ def main():
                 st.session_state.show_pdf_btn = True  # Set the flag to show the button
 
         if user_input['message'] == '' and len(user_input['files']) != 0:
+            print("hi3")
             base64_string = user_input['files'][0]['content']
             image_format = None
             if base64_string.startswith('data:image/png;base64,'):
