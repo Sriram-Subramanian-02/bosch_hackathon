@@ -42,11 +42,19 @@ def main():
 
             elif len(user_input['files']) != 0:
                 base64_string = user_input['files'][0]['content']
+                image_format = None
                 if base64_string.startswith('data:image/png;base64,'):
                     base64_string = base64_string.replace('data:image/png;base64,', '')
+                    image_format = 'png'
+                elif base64_string.startswith('data:image/jpeg;base64,'):
+                    base64_string = base64_string.replace('data:image/jpeg;base64,', '')
+                    image_format = 'jpeg'
+                elif base64_string.startswith('data:image/jpg;base64,'):
+                    base64_string = base64_string.replace('data:image/jpg;base64,', '')
+                    image_format = 'jpg'
 
                 image_data = base64.b64decode(base64_string)
-                image_summary = get_image_summary(image_data)
+                image_summary = get_image_summary(image_data, image_format)
                 query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
                 with this data answer the following question {user_input['message']}"""
 
@@ -88,11 +96,19 @@ def main():
 
         if user_input['message'] == '' and len(user_input['files']) != 0:
             base64_string = user_input['files'][0]['content']
+            image_format = None
             if base64_string.startswith('data:image/png;base64,'):
                 base64_string = base64_string.replace('data:image/png;base64,', '')
+                image_format = 'png'
+            elif base64_string.startswith('data:image/jpeg;base64,'):
+                base64_string = base64_string.replace('data:image/jpeg;base64,', '')
+                image_format = 'jpeg'
+            elif base64_string.startswith('data:image/jpg;base64,'):
+                base64_string = base64_string.replace('data:image/jpg;base64,', '')
+                image_format = 'jpg'
 
             image_data = base64.b64decode(base64_string)
-            image_summary = get_image_summary(image_data)
+            image_summary = get_image_summary(image_data, image_format)
 
             with st.chat_message("user"):
                 st.image(image_data, caption="Uploaded Image", use_column_width=True)

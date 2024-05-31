@@ -398,7 +398,7 @@ def get_image_context_from_QDrant(image_vector):
         return image_summary
 
 
-def get_image_summary(image_bytes):
+def get_image_summary(image_bytes, image_format):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Loading Clip model")
     start_time = time.time()
@@ -408,7 +408,7 @@ def get_image_summary(image_bytes):
     print("Model Loaded")
     print(f"\n\nExecution time for loading the model: {execution_time} seconds")
 
-    image_path = f"input_data/user_image_input/input_image.png"
+    image_path = f"input_data/user_image_input/input_image.{image_format}"
     with open(image_path, 'wb') as f:
         f.write(image_bytes)
 
