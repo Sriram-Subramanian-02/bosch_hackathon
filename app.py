@@ -90,6 +90,7 @@ def main():
                 st.dataframe(df)
                 st.write("Related Table")
                 st.write(f"{table_response}")
+                st.write("Related JSON Data")
             
             if df is None and table_response is not None:
                 st.write(f"{table_response}")
