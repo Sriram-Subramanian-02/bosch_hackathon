@@ -33,19 +33,96 @@ def main():
         with st.chat_message("assistant"):
             st.markdown(message["response"])
 
+    if 'user_input_processed' not in st.session_state:
+        st.session_state.user_input_processed = False
+    if 'current_input' not in st.session_state:
+        st.session_state.current_input = None
 
     if user_input:
-        response, image_id, pdf_pages, df, table_response = None, None, None, None, None
+        if st.session_state.current_input != user_input:
+            st.session_state.user_input_processed = False
+            st.session_state.current_input = user_input
 
-        if user_input['message'] != '':
+        if not st.session_state.user_input_processed:
+            response, image_id, pdf_pages, df, table_response = None, None, None, None, None
 
-            start_time = time.time()
-            if len(user_input['files']) == 0:
-                print("hi1")
-                response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
+            if user_input['message'] != '':
+                start_time = time.time()
+                if len(user_input['files']) == 0:
+                    print("\n--------------------Question with Text--------------------\n")
+                    response, image_id, pdf_pages, df, table_response = get_response(user_input['message'])
 
-            elif len(user_input['files']) != 0:
-                print("hi2")
+                elif len(user_input['files']) != 0:
+                    print("\n--------------------Question with both Text and Image--------------------\n")
+                    base64_string = user_input['files'][0]['content']
+                    image_format = None
+                    if base64_string.startswith('data:image/png;base64,'):
+                        base64_string = base64_string.replace('data:image/png;base64,', '')
+                        image_format = 'png'
+                    elif base64_string.startswith('data:image/jpeg;base64,'):
+                        base64_string = base64_string.replace('data:image/jpeg;base64,', '')
+                        image_format = 'jpeg'
+                    elif base64_string.startswith('data:image/jpg;base64,'):
+                        base64_string = base64_string.replace('data:image/jpg;base64,', '')
+                        image_format = 'jpg'
+
+                    image_data = base64.b64decode(base64_string)
+                    input_image_directory_path = "input_data/user_image_input"
+                    if not os.path.exists(input_image_directory_path):
+                        os.makedirs(input_image_directory_path, exist_ok=True)
+                    image_path = f"input_data/user_image_input/input_image.{image_format}"
+                    with open(image_path, 'wb') as f:
+                        f.write(image_data)
+                    image_summary = get_image_summary_roboflow(image_path)
+                    query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
+                    with this data answer the following question {user_input['message']}"""
+
+                    response, image_id, pdf_pages, df, table_response = get_response(query)
+
+                    with st.chat_message("user"):
+                        st.image(image_data, caption="Uploaded Image", use_column_width=True)
+                    
+                    if os.path.exists(input_image_directory_path) and os.path.isdir(input_image_directory_path):
+                        shutil.rmtree(input_image_directory_path)
+
+                end_time = time.time()
+                execution_time = end_time - start_time
+                print(f"\n\n\nExecution time: {execution_time} seconds")
+
+                print(image_id)
+
+                insert_data(USER_ID, SESSION_ID, user_input['message'], response)
+
+                with st.chat_message("user"):
+                    st.write(f"{user_input['message']}")
+
+                with st.chat_message("assistant"):
+                    st.write(f"{response}")
+
+                if df is not None:
+                    st.dataframe(df)
+                    st.write("Related Table")
+                    st.write(f"{table_response}")
+                
+                if df is None and table_response is not None:
+                    st.write(f"{table_response}")
+                    st.write("Related JSON Data")
+
+                if image_id:
+                    try:
+                        img_bytes = base64.b64decode(get_file_details(image_id)['encoded_val'])
+                        st.image(img_bytes, caption="Related Image", use_column_width=True)
+                    except Exception as e:
+                        st.error(f"Failed to display image: {e}")
+
+                if pdf_pages:
+                    st.session_state.pdf_pages = pdf_pages
+                    st.session_state.show_pdf_btn = True
+
+                st.session_state.user_input_processed = True
+
+            if user_input['message'] == '' and len(user_input['files']) != 0:
+                print("\n--------------------Question with Image--------------------\n")
                 base64_string = user_input['files'][0]['content']
                 image_format = None
                 if base64_string.startswith('data:image/png;base64,'):
@@ -59,90 +136,27 @@ def main():
                     image_format = 'jpg'
 
                 image_data = base64.b64decode(base64_string)
+                input_image_directory_path = "input_data/user_image_input"
+                if not os.path.exists(input_image_directory_path):
+                    os.makedirs(input_image_directory_path, exist_ok=True)
                 image_path = f"input_data/user_image_input/input_image.{image_format}"
                 with open(image_path, 'wb') as f:
                     f.write(image_data)
-
                 image_summary = get_image_summary_roboflow(image_path)
-
-                query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
-                with this data answer the following question {user_input['message']}"""
-
-                response, image_id, pdf_pages, df, table_response = get_response(query)
 
                 with st.chat_message("user"):
                     st.image(image_data, caption="Uploaded Image", use_column_width=True)
-                
-                input_image_directory_path = "input_data/user_image_input"
+                with st.chat_message("assistant"):
+                    st.write(image_summary)
+
                 if os.path.exists(input_image_directory_path) and os.path.isdir(input_image_directory_path):
                     shutil.rmtree(input_image_directory_path)
 
-            end_time = time.time()
-            execution_time = end_time - start_time
-            print(f"\n\n\nExecution time: {execution_time} seconds")
+                st.session_state.user_input_processed = True
 
-            print(image_id)
-
-            insert_data(USER_ID, SESSION_ID, user_input['message'], response)
-
-            with st.chat_message("user"):
-                st.write(f"{user_input['message']}")
-
-            with st.chat_message("assistant"):
-                st.write(f"{response}")
-
-            if df is not None:
-                st.dataframe(df)
-                st.write("Related Table")
-                st.write(f"{table_response}")
-            
-            if df is None and table_response is not None:
-                st.write(f"{table_response}")
-                st.write("Related JSON Data")
-
-            # Display the image if image_id is provided and valid
-            if image_id:
-                try:
-                    # Decode the base64-encoded image
-                    img_bytes = base64.b64decode(get_file_details(image_id)['encoded_val'])
-                    st.image(img_bytes, caption="Related Image", use_column_width=True)
-                except Exception as e:
-                    st.error(f"Failed to display image: {e}")
-
-            if pdf_pages:
-                st.session_state.pdf_pages = pdf_pages
-                st.session_state.show_pdf_btn = True  # Set the flag to show the button
-
-        if user_input['message'] == '' and len(user_input['files']) != 0:
-            print("hi3")
-            base64_string = user_input['files'][0]['content']
-            image_format = None
-            if base64_string.startswith('data:image/png;base64,'):
-                base64_string = base64_string.replace('data:image/png;base64,', '')
-                image_format = 'png'
-            elif base64_string.startswith('data:image/jpeg;base64,'):
-                base64_string = base64_string.replace('data:image/jpeg;base64,', '')
-                image_format = 'jpeg'
-            elif base64_string.startswith('data:image/jpg;base64,'):
-                base64_string = base64_string.replace('data:image/jpg;base64,', '')
-                image_format = 'jpg'
-
-            image_data = base64.b64decode(base64_string)
-            image_path = f"input_data/user_image_input/input_image.{image_format}"
-            with open(image_path, 'wb') as f:
-                f.write(image_data)
-
-            image_summary = get_image_summary_roboflow(image_path)
-
-            with st.chat_message("user"):
-                st.image(image_data, caption="Uploaded Image", use_column_width=True)
-            with st.chat_message("assistant"):
-                st.write(image_summary)
-
-
-    if st.session_state.get("show_pdf_btn", False):  # Check the flag
+    if st.session_state.get("show_pdf_btn", False):
         if st.button('View Reference PDF Contents'):
-            page_switcher(reference_pdf)
+            st.session_state.runpage = reference_pdf
             st.rerun()
 
     container.float("bottom: 0")
