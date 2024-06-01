@@ -48,7 +48,7 @@ def get_response(query, threshold=0.35):
 
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache, None, None, None, flag_probe
+        return cache_response, image_ids_from_cache, None, None, None, None
 
     context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)
