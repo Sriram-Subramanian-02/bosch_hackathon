@@ -7,6 +7,17 @@ from databases.MongoDB.constants import MONGO_DB_URL
 
 
 def get_collection(db_name, collection_name):
+    """
+    Get the MongoDB collection.
+
+    Args:
+        db_name (str): The name of the database.
+        collection_name (str): The name of the collection.
+
+    Returns:
+        pymongo.collection.Collection: The MongoDB collection.
+    """
+
     client = MongoClient(MONGO_DB_URL)
     db = client[db_name]
     collection = db[collection_name]
@@ -15,6 +26,19 @@ def get_collection(db_name, collection_name):
 
 
 def store_in_mongodb(encoded_val, file_name):
+    """
+    Store an encoded image value and its file name in MongoDB.
+
+    If a document with the same file name exists, it is deleted before insertion.
+
+    Args:
+        encoded_val (str): The base64 encoded value of the image.
+        file_name (str): The name of the file.
+
+    Returns:
+        pymongo.results.InsertOneResult: The result of the insert operation.
+    """
+
     # Get the collection
     collection = get_collection(db_name="bosch", collection_name="images_v1")
 
@@ -37,6 +61,16 @@ def store_in_mongodb(encoded_val, file_name):
 
 
 def get_file_details(file_name):
+    """
+    Retrieve file details from MongoDB based on file name.
+
+    Args:
+        file_name (str): The name of the file.
+
+    Returns:
+        dict: The document containing the file details, or None if not found.
+    """
+
     # Get the collection
     collection = get_collection(db_name="bosch", collection_name="images_v1")
 
@@ -53,6 +87,17 @@ def get_file_details(file_name):
 
 
 def delete_all_data_from_collection(db_name="bosch", collection_name="images_v1"):
+    """
+    Delete all documents from a specified collection.
+
+    Args:
+        db_name (str): The name of the database. Defaults to "bosch".
+        collection_name (str): The name of the collection. Defaults to "images_v1".
+
+    Returns:
+        int: The count of deleted documents.
+    """
+
     # Get the collection
     collection = get_collection(db_name, collection_name)
 
@@ -64,6 +109,13 @@ def delete_all_data_from_collection(db_name="bosch", collection_name="images_v1"
 
 
 def create_collection(collection_name):
+    """
+    Create a new collection in the MongoDB database.
+
+    Args:
+        collection_name (str): The name of the new collection.
+    """
+
     # Connect to MongoDB Atlas
     client = pymongo.MongoClient(MONGO_DB_URL)
 
@@ -86,6 +138,17 @@ def insert_data(
     response,
     collection=get_collection(db_name="bosch", collection_name="chat_history_v1"),
 ):
+    """
+    Insert chat data into the MongoDB collection.
+
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        query (str): The query text.
+        response (str): The response text.
+        collection (pymongo.collection.Collection): The MongoDB collection to insert data into. Defaults to "chat_history_v1".
+    """
+
     # Get the current UTC time
     current_time_utc = datetime.utcnow()
 
@@ -116,6 +179,18 @@ def get_latest_data(
     session_id,
     collection=get_collection(db_name="bosch", collection_name="chat_history_v1"),
 ):
+    """
+    Retrieve the latest chat data for a specific user and session.
+
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        collection (pymongo.collection.Collection): The MongoDB collection to retrieve data from. Defaults to "chat_history_v1".
+
+    Returns:
+        list: A list of the latest chat data documents.
+    """
+
     try:
         ist_timezone = pytz.timezone("Asia/Kolkata")
 
@@ -153,6 +228,18 @@ def get_full_data(
     session_id,
     collection=get_collection(db_name="bosch", collection_name="chat_history_v1"),
 ):
+    """
+    Retrieve the full chat data for a specific user and session.
+
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        collection (pymongo.collection.Collection): The MongoDB collection to retrieve data from. Defaults to "chat_history_v1".
+
+    Returns:
+        list: A list of all chat data documents.
+    """
+
     try:
         ist_timezone = pytz.timezone("Asia/Kolkata")
 
@@ -181,6 +268,18 @@ def get_full_data(
 
 
 def check_and_delete_existing_records(user_id, session_id, collection=None):
+    """
+    Check for existing records in the MongoDB collection and delete them if found.
+
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        collection (pymongo.collection.Collection): The MongoDB collection to check. Defaults to "chat_history_v1".
+
+    Returns:
+        bool: True if records were found and deleted, False otherwise.
+    """
+
     if collection is None:
         collection = get_collection(db_name="bosch", collection_name="chat_history_v1")
 

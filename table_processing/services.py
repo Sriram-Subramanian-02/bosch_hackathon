@@ -8,6 +8,25 @@ from constants import COHERE_API_KEY_TABLES
 
 
 def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5):
+    """
+    Reconstructs a table based on provided data, context, and query.
+
+    This function uses a language model to generate a JSON representation of a table element
+    that is most relevant to the given query. The reconstructed table is validated for similarity
+    to the query and returned if it meets the similarity threshold.
+
+    Args:
+        table_data (str): The data of the table to be reconstructed.
+        context (str): Additional context for the reconstruction process.
+        query (str): The query to guide the reconstruction.
+        query_emb: The embedding of the query for similarity comparison.
+        table_threshold (float): The similarity threshold to validate the reconstructed table. Default is 0.5.
+
+    Returns:
+        tuple: A tuple containing the DataFrame of the reconstructed table and the JSON string of the table.
+               Returns (None, None) if the reconstruction is not valid or doesn't meet the similarity threshold.
+    """
+
     model = "embed-english-v3.0"
     input_type = "search_query"
 

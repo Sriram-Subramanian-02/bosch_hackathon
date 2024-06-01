@@ -19,6 +19,17 @@ semantic_cache = semantic_cache("manual_cache.json")
 
 
 def get_response(query, threshold=0.35):
+    """
+    Get a response based on the provided query.
+
+    Args:
+        query (str): The user's query.
+        threshold (float, optional): The threshold for semantic similarity. Defaults to 0.35.
+
+    Returns:
+        tuple: A tuple containing the response text, image ID, PDF pages, DataFrame, and table response.
+    """
+
     # chat_history = get_latest_data(USER_ID, SESSION_ID)
 
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)

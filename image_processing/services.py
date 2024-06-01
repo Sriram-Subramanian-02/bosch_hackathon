@@ -13,6 +13,20 @@ from databases.QDrant.constants import (
 
 
 def return_images_context(image_ids):
+    """
+    Retrieves image context information from the Qdrant database based on image IDs.
+
+    This function queries the Qdrant collection to retrieve documents that match the given
+    image IDs and have the chunk type "Image". It returns a dictionary mapping the page content
+    to the corresponding image IDs.
+
+    Args:
+        image_ids (List[str]): A list of image IDs to search for in the Qdrant collection.
+
+    Returns:
+        Dict[str, List[str]]: A dictionary where keys are the page content and values are lists of image IDs.
+    """
+
     text_to_image_ids = dict()
 
     qdrant_client = QdrantClient(
@@ -50,6 +64,27 @@ def return_images_context(image_ids):
 
 
 def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
+    """
+    Finds the most suitable image based on the query and its embedding.
+
+    This function retrieves image contexts using the given image IDs, and then uses an LLM
+    to find the context most similar to the query. It checks if the car names match between
+    the query and context keys, and returns the value of the most similar context key if it
+    meets the similarity threshold.
+
+    Args:
+        image_ids (List[str]): A list of image IDs to search for in the Qdrant collection.
+        query (str): The input query string.
+        query_emb: The embedding of the query for similarity comparison.
+        img_threshold (float): The similarity threshold to consider for choosing the image. Default is 0.3.
+
+    Returns:
+        Tuple[str, str]: A tuple containing:
+            - str: The image ID of the most suitable image.
+            - str: The context text associated with the most suitable image.
+            If no suitable image is found, returns (None, None).
+    """
+
     text_to_image_ids = return_images_context(image_ids)
     for i in text_to_image_ids:
         print(i)

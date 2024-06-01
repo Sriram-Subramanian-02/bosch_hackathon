@@ -1,6 +1,7 @@
 import os
 import time
 from PIL import Image
+import requests
 
 import torch
 from qdrant_client import QdrantClient
@@ -10,6 +11,20 @@ from image_processing.services import return_images_context
 
 
 def get_image_context_from_QDrant(image_vector):
+    """
+    Retrieves the context for the image closest to the given image vector from Qdrant.
+
+    This function searches the Qdrant collection for the image most similar to the provided
+    image vector. It retrieves the context of the closest image using its ID and returns the
+    summary of the image context.
+
+    Args:
+        image_vector (List[float]): The vector representation of the image to search for.
+
+    Returns:
+        str: The summary of the context of the most similar image found.
+    """
+
     qdrant_client = QdrantClient(
         "https://35ebdc7d-ec99-4ebd-896c-ff5705cf369b.us-east4-0.gcp.cloud.qdrant.io:6333",
         prefer_grpc=True,
@@ -32,7 +47,20 @@ def get_image_context_from_QDrant(image_vector):
 
 
 def get_image_summary_roboflow(image_path):
-    import requests
+    """
+    Retrieves a summary of the context for an image using the Roboflow API and Qdrant.
+
+    This function encodes an image, sends it to the Roboflow API to get its embeddings,
+    and then searches for the most similar image in the Qdrant collection to retrieve
+    its context summary.
+
+    Args:
+        image_path (str): The file path of the image to be processed.
+
+    Returns:
+        str: The summary of the context for the most similar image found.
+        Returns None if embeddings are not found in the response.
+    """
 
     encoded_val = encode_image(image_path)
     infer_clip_payload = {
@@ -58,6 +86,21 @@ def get_image_summary_roboflow(image_path):
 
 
 def get_image_summary_clip(image_bytes, image_format):
+    """
+    Retrieves a summary of the context for an image using the CLIP model and Qdrant.
+
+    This function loads the CLIP model, processes the input image to get its embeddings,
+    and then searches for the most similar image in the Qdrant collection to retrieve
+    its context summary.
+
+    Args:
+        image_bytes (bytes): The byte content of the image to be processed.
+        image_format (str): The format of the image (e.g., 'png', 'jpeg').
+
+    Returns:
+        str: The summary of the context for the most similar image found.
+    """
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Loading Clip model")
     start_time = time.time()

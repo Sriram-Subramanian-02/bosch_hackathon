@@ -4,6 +4,16 @@ from pdf2image import convert_from_path
 
 
 def get_pdf_pages(context):
+    """
+    Extracts the page numbers from the context of a PDF document.
+
+    Args:
+        context (list): A list of Document objects representing the context of a PDF document.
+
+    Returns:
+        dict: A dictionary where keys are car names and values are lists of page numbers.
+    """
+
     pdf_pages = {}
     for doc in context:
         car_name = doc.metadata["car_name"]
@@ -16,6 +26,17 @@ def get_pdf_pages(context):
 
 
 def pdf_to_images(pdf_path, pages=None):
+    """
+    Converts specified pages of a PDF document to base64-encoded PNG images.
+
+    Args:
+        pdf_path (str): The path to the PDF document.
+        pages (list, optional): A list of page numbers to convert. Defaults to None, which converts all pages.
+
+    Returns:
+        list: A list of base64-encoded strings representing the PNG images.
+    """
+
     images = []
     for page_num in pages:
         images.extend(

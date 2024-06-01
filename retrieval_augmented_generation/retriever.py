@@ -1,3 +1,5 @@
+import os
+from itertools import chain
 from operator import itemgetter
 
 from langchain.load import dumps, loads
@@ -10,12 +12,15 @@ from qdrant_client import models, QdrantClient
 from langchain.vectorstores import Qdrant
 from langchain_core.runnables import RunnableLambda
 
+from constants import COHERE_API_KEY_TABLES
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT, TOP_K
 from databases.QDrant.constants import (
     QDRANT_URL,
     QDRANT_API_KEY,
     QDRANT_COLLECTION_NAME,
 )
+
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TABLES
 
 
 def reciprocal_rank_fusion(results: list[list], k=60):
@@ -152,7 +157,23 @@ def rrf_retriever(query: str) -> list[Document]:
 
 
 def normal_retriever(query: str) -> list[Document]:
-    # Retriever
+    """
+    Retrieves relevant documents and associated metadata based on the input query.
+
+    This function uses the Cohere embedding model to embed the query and the Qdrant client
+    to retrieve relevant documents from a specified collection. It processes the results to
+    extract image IDs and table data.
+
+    Args:
+        query (str): The input query string.
+
+    Returns:
+        Tuple[List[Document], List[str], List[str]]: A tuple containing:
+            - List[Document]: The list of retrieved documents.
+            - List[str]: The list of image IDs extracted from the metadata of the documents.
+            - List[str]: The list of table data extracted from the content of the documents.
+    """
+
     embedding = CohereEmbeddings(model="embed-english-v3.0")
 
     qdrant_client = QdrantClient(
@@ -176,7 +197,6 @@ def normal_retriever(query: str) -> list[Document]:
 
     image_ids = []
     table_data = list()
-    from itertools import chain
 
     for document in result:
         image_ids.append(document.metadata["image_ids"])
