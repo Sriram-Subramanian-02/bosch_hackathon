@@ -1,6 +1,7 @@
 import os
 from itertools import chain
 from operator import itemgetter
+import os
 
 from langchain.load import dumps, loads
 from langchain_core.prompts import ChatPromptTemplate
@@ -14,6 +15,7 @@ from langchain_core.runnables import RunnableLambda
 
 from constants import COHERE_API_KEY_TABLES
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT, TOP_K
+from constants import COHERE_API_KEY_TABLES
 from databases.QDrant.constants import (
     QDRANT_URL,
     QDRANT_API_KEY,

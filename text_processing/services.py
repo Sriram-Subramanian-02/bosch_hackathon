@@ -3,7 +3,7 @@ import time
 import cohere
 from sentence_transformers.util import cos_sim
 
-from constants import COHERE_API_KEY_TEXT
+from constants import COHERE_API_KEY_TABLES
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
