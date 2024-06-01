@@ -3,11 +3,11 @@ import time
 import cohere
 from sentence_transformers.util import cos_sim
 
-from constants import COHERE_API_KEY_TEXT
+from constants import COHERE_API_KEY_TABLES
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
-    co = cohere.Client(api_key=COHERE_API_KEY_TEXT)
+    co = cohere.Client(api_key=COHERE_API_KEY_TABLES)
     model = "embed-english-v3.0"
     input_type = "search_query"
 

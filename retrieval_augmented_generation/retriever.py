@@ -1,4 +1,5 @@
 from operator import itemgetter
+import os
 
 from langchain.load import dumps, loads
 from langchain_core.prompts import ChatPromptTemplate
@@ -11,11 +12,15 @@ from langchain.vectorstores import Qdrant
 from langchain_core.runnables import RunnableLambda
 
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT, TOP_K
+from constants import COHERE_API_KEY_TABLES
 from databases.QDrant.constants import (
     QDRANT_URL,
     QDRANT_API_KEY,
     QDRANT_COLLECTION_NAME,
 )
+
+
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TABLES
 
 
 def reciprocal_rank_fusion(results: list[list], k=60):
@@ -153,7 +158,7 @@ def rrf_retriever(query: str) -> list[Document]:
 
 def normal_retriever(query: str) -> list[Document]:
     # Retriever
-    embedding = CohereEmbeddings(model="embed-english-v3.0")
+    embedding = CohereEmbeddings(model="embed-english-v3.0",cohere_api_key=COHERE_API_KEY_TABLES)
 
     qdrant_client = QdrantClient(
         QDRANT_URL,
