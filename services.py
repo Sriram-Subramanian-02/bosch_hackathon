@@ -30,11 +30,25 @@ def get_response(query, threshold=0.35):
         tuple: A tuple containing the response text, image ID, PDF pages, DataFrame, and table response.
     """
 
-    # chat_history = get_latest_data(USER_ID, SESSION_ID)
+    chat_history, probing_history = get_latest_data(USER_ID, SESSION_ID)
+    print(f"\n\nprobing hist = {probing_history}")
+
+    if len(probing_history) != 0:
+        new_query = ''
+
+        for doc in probing_history:
+            new_query += f"{doc['query']}. "
+
+        query = new_query + query
+
+        print(f"\n\n\nNew query = {query}")
+
+    else:
+        print("\n\n\nNo probing history\n\n\n")
 
     cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache, None, None, None
+        return cache_response, image_ids_from_cache, None, None, None, flag_probe
 
     context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)
@@ -58,7 +72,7 @@ def get_response(query, threshold=0.35):
 
     # Use ThreadPoolExecutor to run functions in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_chat_history = executor.submit(get_latest_data, USER_ID, SESSION_ID)
+        # future_chat_history = executor.submit(get_latest_data, USER_ID, SESSION_ID)
         future_image_id = executor.submit(
             get_suitable_image, image_ids, query, query_emb
         )
@@ -69,7 +83,7 @@ def get_response(query, threshold=0.35):
             reconstruct_table, table_data, context_list, f"{query}", query_emb
         )
 
-        chat_history = future_chat_history.result()
+        # chat_history = future_chat_history.result()
         image_id, max_image_content = future_image_id.result()
         df, table_response = future_table_response.result()
         counter = future_counter.result()
@@ -121,6 +135,6 @@ def get_response(query, threshold=0.35):
     semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
 
     if flag_probe:
-        return response.text, None, pdf_pages, None, None
+        return response.text, None, pdf_pages, None, None, flag_probe
     else:
-        return response.text, image_id, pdf_pages, df, table_response
+        return response.text, image_id, pdf_pages, df, table_response, flag_probe

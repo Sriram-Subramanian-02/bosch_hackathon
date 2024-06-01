@@ -195,7 +195,7 @@ def normal_retriever(query: str) -> list[Document]:
 
     # invoke
     result = retriever.invoke(query)
-    print(result)
+    # print(result)
 
     image_ids = []
     table_data = list()

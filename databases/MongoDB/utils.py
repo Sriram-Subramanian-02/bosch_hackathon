@@ -131,29 +131,12 @@ def create_collection(collection_name):
     client.close()
 
 
-def insert_data(
-    user_id,
-    session_id,
-    query,
-    response,
-    collection=get_collection(db_name="bosch", collection_name="chat_history_v1"),
-):
-    """
-    Insert chat data into the MongoDB collection.
-
-    Args:
-        user_id (str): The user ID.
-        session_id (str): The session ID.
-        query (str): The query text.
-        response (str): The response text.
-        collection (pymongo.collection.Collection): The MongoDB collection to insert data into. Defaults to "chat_history_v1".
-    """
-
+def insert_data(user_id, session_id, query, response, is_probing_question, collection=get_collection(db_name="bosch", collection_name="chat_history_v1")):
     # Get the current UTC time
     current_time_utc = datetime.utcnow()
 
     # Define the IST timezone
-    ist_timezone = pytz.timezone("Asia/Kolkata")
+    ist_timezone = pytz.timezone('Asia/Kolkata')
 
     # Convert the UTC time to IST
     current_time_ist = current_time_utc.astimezone(ist_timezone)
@@ -167,43 +150,27 @@ def insert_data(
             "query": query,
             "response": response,
             "timestamp": current_time_ist.strftime("%Y-%m-%d %H:%M:%S %Z%z"),
-        },
+            "is_probing_question": is_probing_question
+        }
     }
 
     # Insert the document into the collection
     collection.insert_one(data_to_insert)
 
-
-def get_latest_data(
-    user_id,
-    session_id,
-    collection=get_collection(db_name="bosch", collection_name="chat_history_v1"),
-):
-    """
-    Retrieve the latest chat data for a specific user and session.
-
-    Args:
-        user_id (str): The user ID.
-        session_id (str): The session ID.
-        collection (pymongo.collection.Collection): The MongoDB collection to retrieve data from. Defaults to "chat_history_v1".
-
-    Returns:
-        list: A list of the latest chat data documents.
-    """
-
+def get_latest_data(user_id, session_id, collection=get_collection(db_name="bosch", collection_name="chat_history_v1")):
     try:
-        ist_timezone = pytz.timezone("Asia/Kolkata")
+        ist_timezone = pytz.timezone('Asia/Kolkata')
 
         # Find the documents for the given user_id and session_id, sort by timestamp in descending order, and limit to 5
-        cursor = (
-            collection.find(
-                {"$and": [{"user_id": user_id}, {"session_id": session_id}]}
-            )
-            .sort("chat_history.timestamp", pymongo.DESCENDING)
-            .limit(5)
-        )
+        cursor = collection.find(
+            {"$and": [
+                {"user_id": user_id},
+                {"session_id": session_id}
+            ]}
+        ).sort("chat_history.timestamp", pymongo.DESCENDING).limit(5)
 
         latest_data = []
+        probing_data = []
 
         for document in cursor:
             # timestamp_ist = datetime.strptime(document["chat_history"]["timestamp"], "%Y-%m-%d %H:%M:%S %Z")
@@ -212,15 +179,24 @@ def get_latest_data(
             data_entry = {
                 "query": document["chat_history"]["query"],
                 "response": document["chat_history"]["response"],
-                "timestamp": document["chat_history"]["timestamp"],
+                "is_probing_question": document["chat_history"]["is_probing_question"]
             }
 
             latest_data.append(data_entry)
+        
+        flag = True
 
-        return latest_data
-
-    except:
-        return []
+        for doc in latest_data:
+            if doc['is_probing_question'] and flag:
+                probing_data.append(doc)
+            else:
+                flag=False
+        
+        return latest_data, probing_data
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return [], []
 
 
 def get_full_data(

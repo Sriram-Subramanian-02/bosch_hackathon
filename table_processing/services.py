@@ -35,6 +35,7 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
         Reconstruct only one element of table_data that is most similar to the question.
         Return the table in json format and do not add anything else like new line characters or tab spaces.
         If car names in question and table_data does not match return empty string.
+        If you feel that json data is unneccesary return empty string.
         If you feel that json format that you are returning is not similar to question, return empty string.
     """
 

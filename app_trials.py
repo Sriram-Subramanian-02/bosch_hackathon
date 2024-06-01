@@ -46,15 +46,16 @@ def main():
         if (not uploaded_file) or (uploaded_file and uploaded_file.name in list(file_names.keys())):
             print("\n--------------------Question with Text--------------------\n")
             start_time = time.time()
-            response, image_id, pdf_pages, df, table_response = get_response(user_question)
+            response, image_id, pdf_pages, df, table_response, flag_probe = get_response(user_question)
             end_time = time.time()
 
             execution_time = end_time - start_time
             print(f"\n\n\nExecution time: {execution_time} seconds")
 
             print(image_id)
+            print(f'\n\n flag_probe = {flag_probe}')
 
-            insert_data(USER_ID, SESSION_ID, user_question, response)
+            insert_data(USER_ID, SESSION_ID, user_question, response, flag_probe)
 
             with st.chat_message("user"):
                 st.write(f"{user_question}")
@@ -122,7 +123,9 @@ def main():
             query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
             with this data answer the following question {user_question}"""
 
-            response, image_id, pdf_pages, df, table_response = get_response(query)
+            response, image_id, pdf_pages, df, table_response, flag_probe = get_response(query)
+
+            print(f'\n\n flag_probe = {flag_probe}')
 
             with st.chat_message("user"):
                 st.image(image_bytes, caption="Uploaded Image", use_column_width=True)
@@ -132,7 +135,7 @@ def main():
             if os.path.exists(input_image_directory_path) and os.path.isdir(input_image_directory_path):
                 shutil.rmtree(input_image_directory_path)
 
-            insert_data(USER_ID, SESSION_ID, user_question, response)
+            insert_data(USER_ID, SESSION_ID, user_question, response, flag_probe)
 
             with st.chat_message("assistant"):
                 st.write(f"{response}")

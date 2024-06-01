@@ -86,9 +86,9 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     """
 
     text_to_image_ids = return_images_context(image_ids)
-    for i in text_to_image_ids:
-        print(i)
-        print(text_to_image_ids[i])
+    # for i in text_to_image_ids:
+        # print(i)
+        # print(text_to_image_ids[i])
     # new_text_to_image_ids = dict()
     images_context_values = list(text_to_image_ids.keys())
 
