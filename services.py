@@ -46,9 +46,9 @@ def get_response(query, threshold=0.35):
     else:
         print("\n\n\nNo probing history\n\n\n")
 
-    cache_response, image_ids_from_cache = semantic_cache.query_cache(query)
+    cache_response, image_ids_from_cache, pdf_pages = semantic_cache.query_cache(query)
     if cache_response is not None:
-        return cache_response, image_ids_from_cache, None, None, None, None
+        return cache_response, image_ids_from_cache, pdf_pages, None, None, None
 
     context, image_ids, table_data = normal_retriever(query)
     pdf_pages = get_pdf_pages(context)
@@ -132,7 +132,9 @@ def get_response(query, threshold=0.35):
     co = cohere.Client(COHERE_API_KEY_TABLES)
     response = co.chat(message=prompt, model="command-r", temperature=0)
 
-    semantic_cache.insert_into_cache(query, query_emb, response.text, image_id)
+    semantic_cache.insert_into_cache(
+        query, query_emb, response.text, image_id, pdf_pages
+    )
 
     if flag_probe:
         return response.text, None, pdf_pages, None, None, flag_probe
