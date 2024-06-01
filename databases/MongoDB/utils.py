@@ -132,6 +132,16 @@ def create_collection(collection_name):
 
 
 def insert_data(user_id, session_id, query, response, is_probing_question, collection=get_collection(db_name="bosch", collection_name="chat_history_v1")):
+    """
+    Insert chat data into the MongoDB collection.
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        query (str): The query text.
+        response (str): The response text.
+        is_probing_question (bool): Tells us whether the query is a probing question or not
+        collection (pymongo.collection.Collection): The MongoDB collection to insert data into. Defaults to "chat_history_v1".
+    """
     # Get the current UTC time
     current_time_utc = datetime.utcnow()
 
@@ -158,6 +168,26 @@ def insert_data(user_id, session_id, query, response, is_probing_question, colle
     collection.insert_one(data_to_insert)
 
 def get_latest_data(user_id, session_id, collection=get_collection(db_name="bosch", collection_name="chat_history_v1")):
+    """
+    Retrieve the latest chat data for a specific user and session, along with the latest probing question.
+
+    Args:
+        user_id (str): The user ID.
+        session_id (str): The session ID.
+        collection (pymongo.collection.Collection, optional): The MongoDB collection to retrieve data from. 
+            Defaults to the "chat_history_v1" collection in the "bosch" database.
+
+    Returns:
+        tuple: A tuple containing:
+            - latest_data (list): A list of dictionaries representing the latest chat data documents. Each dictionary contains:
+                - query (str): The user's query.
+                - response (str): The assistant's response.
+                - is_probing_question (bool): A flag indicating if the query was a probing question.
+            - probing_data (list): A list of dictionaries representing the latest probing question data. Each dictionary contains:
+                - query (str): The user's query.
+                - response (str): The assistant's response.
+                - is_probing_question (bool): A flag indicating if the query was a probing question.
+    """
     try:
         ist_timezone = pytz.timezone('Asia/Kolkata')
 
