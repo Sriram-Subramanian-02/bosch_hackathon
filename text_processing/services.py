@@ -23,7 +23,7 @@ def check_probing_conditions(context_list, query_emb, threshold):
         int: The count of context embeddings that have a similarity below the threshold.
     """
 
-    co = cohere.Client(api_key=COHERE_API_KEY_TEXT)
+    co = cohere.Client(api_key=COHERE_API_KEY_TABLES)
     model = "embed-english-v3.0"
     input_type = "search_query"
 
