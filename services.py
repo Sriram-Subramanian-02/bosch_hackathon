@@ -140,3 +140,31 @@ def get_response(query, threshold=0.35):
             query, query_emb, response.text, image_id, pdf_pages
         )
         return response.text, image_id, pdf_pages, df, table_response, flag_probe
+
+
+def generalize_image_summary(response):
+    """
+    Generate a generalized and user-friendly summary of an image description.
+
+    This function uses the Cohere API to transform a detailed image summary into a polite, 
+    easy-to-understand bullet-point list, suitable for helping users comprehend car owner manuals.
+
+    Args:
+        response (str): The detailed image summary from Qdrant.
+
+    Returns:
+        str: A string containing the generalized and user-friendly image summary.
+    """
+    
+    prompt = f"""
+        You are a chatbot designed to assist users in understanding car owner manuals.
+        Please transform the following image summary into a polite, easy-to-understand list of bullet points.
+        Avoid using technical jargon and aim for clarity and simplicity.
+
+        Image Summary: {response}
+    """
+
+    co = cohere.Client(COHERE_API_KEY_TABLES)
+    response = co.chat(message=prompt, model="command-r", temperature=0)
+
+    return response.text

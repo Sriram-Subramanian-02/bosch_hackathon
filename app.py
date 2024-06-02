@@ -10,7 +10,7 @@ from streamlit_float import float_init
 from constants import USER_ID, SESSION_ID, pdf_mapping
 from databases.MongoDB.utils import insert_data, get_full_data, get_file_details
 from image_processing.image_summary import get_image_summary_roboflow
-from services import get_response
+from services import get_response, generalize_image_summary
 from utils import pdf_to_images
 
 float_init()
@@ -43,6 +43,7 @@ def main():
         st.session_state.current_input = None
 
     if user_input:
+        is_image = False
         if st.session_state.current_input != user_input:
             st.session_state.user_input_processed = False
             st.session_state.current_input = user_input
@@ -67,6 +68,7 @@ def main():
                     )
 
                 elif len(user_input["files"]) != 0:
+                    is_image = True
                     print(
                         "\n--------------------Question with both Text and Image--------------------\n"
                     )
@@ -140,11 +142,16 @@ def main():
                     st.write(f"{table_response}")
                     st.write("Related JSON Data")
 
-                if image_id:
+                # print(is_image)
+                if image_id and not is_image:
                     try:
                         img_bytes = base64.b64decode(
                             get_file_details(image_id)["encoded_val"]
                         )
+                        # if img_bytes:
+                        #     print("img bytesTrue")
+                        # else:
+                        #     print("no bytes False")
                         st.image(
                             img_bytes, caption="Related Image", use_column_width=True
                         )
@@ -158,6 +165,7 @@ def main():
                 st.session_state.user_input_processed = True
 
             if user_input["message"] == "" and len(user_input["files"]) != 0:
+                is_image = True
                 print("\n--------------------Question with Image--------------------\n")
                 base64_string = user_input["files"][0]["content"]
                 image_format = None
@@ -178,7 +186,7 @@ def main():
                 image_path = f"input_data/user_image_input/input_image.{image_format}"
                 with open(image_path, "wb") as f:
                     f.write(image_data)
-                image_summary = get_image_summary_roboflow(image_path)
+                image_summary = generalize_image_summary(get_image_summary_roboflow(image_path))
 
                 with st.chat_message("user"):
                     st.image(
