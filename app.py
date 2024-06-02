@@ -121,6 +121,8 @@ def main():
 
                 print(image_id)
 
+                print(f"flag_probe = {flag_probe}")
+
                 insert_data(USER_ID, SESSION_ID, user_input["message"], response, flag_probe)
 
                 with st.chat_message("user"):

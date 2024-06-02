@@ -41,7 +41,7 @@ def get_response(query, threshold=0.35):
 
         query = new_query + query
 
-        print(f"\n\n\nNew query = {query}")
+        print(f"\n\n\nNew query = {query}\n\n\n")
 
     else:
         print("\n\n\nNo probing history\n\n\n")
@@ -111,7 +111,7 @@ def get_response(query, threshold=0.35):
                     You are a chatbot built for helping users understand car's owner manuals.
                     Answer the question:{query} only based on the context: {context} and the chat history of the user: {chat_history} provided.
                     Try to answer in bulletin points.
-                    If the user doesnot specify the car's name, kindly ask for it as a probing question. Else you should say that this response is for this particular car/cars.
+                    If the user doesnot specify the car's name, you should say that this response is for this particular car/cars.
                     Do not mention anything about images or figures.
                     Do not use technical words, give easy to understand responses.
                     Do not divulge any other details other than query or context.
