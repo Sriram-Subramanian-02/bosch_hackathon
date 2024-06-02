@@ -32,8 +32,9 @@ def check_probing_conditions(context_list, query_emb, threshold):
 
     counter = 0
     for i in res.embeddings:
-        if float(cos_sim(query_emb.embeddings, i)[0][0]) < threshold:
-            print(float(cos_sim(query_emb.embeddings, i)[0][0]))
+        val = float(cos_sim(query_emb.embeddings, i)[0][0])
+        if val < threshold:
+            print(f"cos sim = {val}")
             counter += 1
 
     print(f"counter = {counter}")

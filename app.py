@@ -62,7 +62,7 @@ def main():
                     print(
                         "\n--------------------Question with Text--------------------\n"
                     )
-                    response, image_id, pdf_pages, df, table_response = get_response(
+                    response, image_id, pdf_pages, df, table_response, flag_probe = get_response(
                         user_input["message"]
                     )
 
@@ -101,7 +101,7 @@ def main():
                     query = f"""{image_summary} - This is a summary of an image uploaded by the user, 
                     with this data answer the following question {user_input['message']}"""
 
-                    response, image_id, pdf_pages, df, table_response = get_response(
+                    response, image_id, pdf_pages, df, table_response, flag_probe = get_response(
                         query
                     )
 
@@ -121,7 +121,9 @@ def main():
 
                 print(image_id)
 
-                insert_data(USER_ID, SESSION_ID, user_input["message"], response)
+                print(f"flag_probe = {flag_probe}")
+
+                insert_data(USER_ID, SESSION_ID, user_input["message"], response, flag_probe)
 
                 with st.chat_message("user"):
                     st.write(f"{user_input['message']}")

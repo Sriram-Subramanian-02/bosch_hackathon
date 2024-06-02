@@ -15,7 +15,6 @@ from langchain_core.runnables import RunnableLambda
 
 from constants import COHERE_API_KEY_TABLES
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT, TOP_K
-from constants import COHERE_API_KEY_TABLES
 from databases.QDrant.constants import (
     QDRANT_URL,
     QDRANT_API_KEY,
@@ -155,7 +154,14 @@ def rrf_retriever(query: str) -> list[Document]:
     )
 
     print(image_ids)
-    return result, image_ids
+    table_data = list()
+
+    for document in result:
+        if document.metadata["chunk_type"] == "Table":
+            table_data.append(document.page_content)
+
+    
+    return result, image_ids, table_data
 
 
 def normal_retriever(query: str) -> list[Document]:
@@ -195,7 +201,7 @@ def normal_retriever(query: str) -> list[Document]:
 
     # invoke
     result = retriever.invoke(query)
-    print(result)
+    # print(result)
 
     image_ids = []
     table_data = list()
