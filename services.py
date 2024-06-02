@@ -132,11 +132,11 @@ def get_response(query, threshold=0.35):
     co = cohere.Client(COHERE_API_KEY_TABLES)
     response = co.chat(message=prompt, model="command-r", temperature=0)
 
-    semantic_cache.insert_into_cache(
-        query, query_emb, response.text, image_id, pdf_pages
-    )
 
     if flag_probe:
         return response.text, None, pdf_pages, None, None, flag_probe
     else:
+        semantic_cache.insert_into_cache(
+            query, query_emb, response.text, image_id, pdf_pages
+        )
         return response.text, image_id, pdf_pages, df, table_response, flag_probe
