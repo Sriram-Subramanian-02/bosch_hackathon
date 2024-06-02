@@ -4,7 +4,7 @@ import cohere
 import concurrent.futures
 
 from caching import semantic_cache
-from constants import USER_ID, SESSION_ID, COHERE_API_KEY_TEXT
+from constants import USER_ID, SESSION_ID, COHERE_API_KEY_TEXT, COHERE_API_KEY_TABLES
 from databases.MongoDB.utils import get_latest_data
 from image_processing.services import get_suitable_image
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT
