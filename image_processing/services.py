@@ -117,7 +117,12 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
         if value == str(response.text):
             max_image_context = key
 
-    # print(f"max_image content is: \n{max_image_context}")
+    if not max_image_context:
+        d = return_images_context([str(response.text)])
+        if d:
+            max_image_context = list(d.keys())[0]
+
+    print(f"\n\nmax_image content is: \n{max_image_context}")
 
     if max_image_context is None:
         return None, None
@@ -125,7 +130,7 @@ def get_suitable_image(image_ids, query, query_emb, img_threshold=0.3):
     image_emb = co.embed(texts=[max_image_context], model=model, input_type=input_type)
     val = float(cos_sim(query_emb.embeddings, image_emb.embeddings)[0][0])
 
-    print(f"Image similarity value is {val}")
+    print(f"\n\n\nImage similarity value is {val}\n\n\n")
     if val >= img_threshold:
         return str(response.text), max_image_context
 
