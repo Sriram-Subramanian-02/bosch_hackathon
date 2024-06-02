@@ -98,7 +98,7 @@ def get_response(query, threshold=0.35):
                 As similarity between query and context is low, try to ask several probing questions.
                 Ask several followup questions to get further clarity.
                 Answer in a polite tone, and convey to the user that you need more clarity to answer the question.
-                If the user doesnot specify the car's name, kindly ask for it as a probing question(available car names are HYUNDAI EXTER and TATA NEXON).
+                If the user doesnot specify the car's name, kindly ask for it as a probing question(available car names are HYUNDAI EXTER or EXTER, HYUNDAI VERNA or VERNA, TATA PUNCH or PUNCH and TATA NEXON or NEXON).
                 Then display the probing questions as bulletin points.
                 Do not use technical words, give easy to understand responses.
                 If the question asked is a generic question or causal question answer them without using the context.
@@ -132,11 +132,11 @@ def get_response(query, threshold=0.35):
     co = cohere.Client(COHERE_API_KEY_TABLES)
     response = co.chat(message=prompt, model="command-r", temperature=0)
 
-    semantic_cache.insert_into_cache(
-        query, query_emb, response.text, image_id, pdf_pages
-    )
 
     if flag_probe:
         return response.text, None, pdf_pages, None, None, flag_probe
     else:
+        semantic_cache.insert_into_cache(
+            query, query_emb, response.text, image_id, pdf_pages
+        )
         return response.text, image_id, pdf_pages, df, table_response, flag_probe
