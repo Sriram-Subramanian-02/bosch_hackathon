@@ -6,6 +6,11 @@ import requests
 import torch
 from qdrant_client import QdrantClient
 
+from databases.QDrant.constants import (
+    QDRANT_URL,
+    QDRANT_API_KEY,
+    QDRANT_IMAGE_COLLECTION_NAME,
+)
 from image_processing.utils import encode_image, load_clip_model
 from image_processing.services import return_images_context
 from image_processing.constants import ROBOFLOW_API_KEY
@@ -27,13 +32,13 @@ def get_image_context_from_QDrant(image_vector):
     """
 
     qdrant_client = QdrantClient(
-        "https://35ebdc7d-ec99-4ebd-896c-ff5705cf369b.us-east4-0.gcp.cloud.qdrant.io:6333",
+        QDRANT_URL,
         prefer_grpc=True,
-        api_key="9dKJsKOYwT0vGlWPrZXBSIlbUzvRdJ1XkM0_floo8FmYCOHX_Y0y-Q",
+        api_key=QDRANT_API_KEY,
     )
 
     search_result = qdrant_client.search(
-        collection_name="owners_manual_images_roboflow",
+        collection_name=QDRANT_IMAGE_COLLECTION_NAME,
         query_vector=image_vector,
         limit=1,
     )
