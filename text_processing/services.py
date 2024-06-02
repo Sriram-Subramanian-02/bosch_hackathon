@@ -3,7 +3,7 @@ import time
 import cohere
 from sentence_transformers.util import cos_sim
 
-from constants import COHERE_API_KEY_TABLES
+from constants import COHERE_API_KEY_TEXT
 
 
 def check_probing_conditions(context_list, query_emb, threshold):
@@ -23,7 +23,7 @@ def check_probing_conditions(context_list, query_emb, threshold):
         int: The count of context embeddings that have a similarity below the threshold.
     """
 
-    co = cohere.Client(api_key=COHERE_API_KEY_TABLES)
+    co = cohere.Client(api_key=COHERE_API_KEY_TEXT)
     model = "embed-english-v3.0"
     input_type = "search_query"
 

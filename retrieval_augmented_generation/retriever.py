@@ -13,7 +13,7 @@ from qdrant_client import models, QdrantClient
 from langchain.vectorstores import Qdrant
 from langchain_core.runnables import RunnableLambda
 
-from constants import COHERE_API_KEY_TABLES
+from constants import COHERE_API_KEY_TEXT
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT, TOP_K
 from databases.QDrant.constants import (
     QDRANT_URL,
@@ -21,7 +21,7 @@ from databases.QDrant.constants import (
     QDRANT_COLLECTION_NAME,
 )
 
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TABLES
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TEXT
 
 
 def reciprocal_rank_fusion(results: list[list], k=60):

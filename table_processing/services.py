@@ -56,6 +56,10 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
         data = json.loads(formatted_response)
         json_string = json.dumps(data)
 
+        # Check if the number of keys is greater than 1
+        if len(data.keys()) <= 1:
+            return None, None
+
         table_emb = co.embed(texts=[json_string], model=model, input_type=input_type)
         val = float(cos_sim(query_emb.embeddings, table_emb.embeddings)[0][0])
         print(val)
@@ -72,4 +76,4 @@ def reconstruct_table(table_data, context, query, query_emb, table_threshold=0.5
             return None, data
 
     except:
-        return None, formatted_response
+        return None, None
