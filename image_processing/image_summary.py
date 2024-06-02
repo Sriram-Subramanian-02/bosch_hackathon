@@ -8,6 +8,7 @@ from qdrant_client import QdrantClient
 
 from image_processing.utils import encode_image, load_clip_model
 from image_processing.services import return_images_context
+from image_processing.constants import ROBOFLOW_API_KEY
 
 
 def get_image_context_from_QDrant(image_vector):
@@ -70,10 +71,9 @@ def get_image_summary_roboflow(image_path):
         },
     }
     base_url = "https://infer.roboflow.com"
-    api_key = "pUmnI6Vv3mdDdmDiEtqz"
 
     res = requests.post(
-        f"{base_url}/clip/embed_image?api_key={api_key}",
+        f"{base_url}/clip/embed_image?api_key={ROBOFLOW_API_KEY}",
         json=infer_clip_payload,
     )
 

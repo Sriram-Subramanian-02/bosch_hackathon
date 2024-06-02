@@ -4,7 +4,7 @@ import cohere
 import concurrent.futures
 
 from caching import semantic_cache
-from constants import USER_ID, SESSION_ID, COHERE_API_KEY_TABLES
+from constants import USER_ID, SESSION_ID, COHERE_API_KEY_TEXT, COHERE_API_KEY_TABLES
 from databases.MongoDB.utils import get_latest_data
 from image_processing.services import get_suitable_image
 from retrieval_augmented_generation.constants import MAX_DOCS_FOR_CONTEXT
@@ -14,7 +14,7 @@ from text_processing.services import check_probing_conditions
 from utils import get_pdf_pages
 
 
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TABLES
+os.environ["COHERE_API_KEY"] = COHERE_API_KEY_TEXT
 semantic_cache = semantic_cache("manual_cache.json")
 
 
@@ -58,7 +58,7 @@ def get_response(query, threshold=0.35):
     for i in context:
         context_list.append(i.page_content)
 
-    co = cohere.Client(api_key=COHERE_API_KEY_TABLES)
+    co = cohere.Client(api_key=COHERE_API_KEY_TEXT)
 
     model = "embed-english-v3.0"
     input_type = "search_query"
@@ -129,7 +129,7 @@ def get_response(query, threshold=0.35):
                     If the question is a general question, try to interact with the user in a polite way.
                 """
 
-    co = cohere.Client(COHERE_API_KEY_TABLES)
+    co = cohere.Client(COHERE_API_KEY_TEXT)
     response = co.chat(message=prompt, model="command-r", temperature=0)
 
 
